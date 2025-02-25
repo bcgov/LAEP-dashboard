@@ -1,0 +1,50 @@
+Entire Region
+Regional Districts
+Local Areas
+Raw Data
+About
+User Guide
+Powered by CityViz Economic Development Data Portal
+Local Area Economic Profiles
+Background
+The Local Area Economic Profile Report is a new edition of an economic model that was previous called the Local Area Economic Dependencies and was last published by BC Stats in 2009.
+
+This project creates a consistent economic model for 103 local areas in British Columbia. It combines detailed census data with the province's macroeconomic model and is primarily intended to provide information on rural areas and to help estimate the impact of economic changes.
+
+Framework of the Model
+Data Sources
+Sector Aggregations
+Local Area Boundaries
+Limitations
+The fundamental premise of this work is that the economy of a community can be represented by income flows that can be classified as basic or non-basic. Basic income flows into the community from the outside world in the form of employment income or non-employment income, while non-basic income is generated from jobs that provide goods and services to the people who live there.
+
+There are 12 sources of basic income used in the LAED model: 10 industrial sectors and two types of non-employment income.
+
+Jobs in Forestry and associated manufacturing, further disaggregated into two groups: logging and wood manufacturing;
+Jobs in Mining, Oil and Gas and associated manufacturing;
+Jobs in Fishing and Trapping and associated manufacturing;
+Jobs in Agriculture, disaggregated into farming and food and beverage manufacturing;
+Jobs in Tourism, disaggregated into transportation, accommodation, food and beverage, recreation and entertainment, retail and other;
+Jobs in High Tech Manufacturing;
+Jobs in the Public Sector, disaggregated by level of government;
+Jobs in Construction, disaggregated by type of construction;
+Jobs in Film Production and Sound Recording;
+Jobs in Other industries, which includes portions of non-basic sectors which have identified exports and other sources of outside demand;
+Government transfer payments such as Income Assistance, Canada Pension Plan, Child Tax benefits, and more;
+Non-employment market income such as investment income, dividends and interest, and private pensions.
+Non-basic income is generated from jobs in the community that provide goods and services to individuals who live there. Examples of these include much of retail trade, local transportation services, financial services and personal services.
+
+Definitions of basic and non-basic sectors, according to the North American Industry Classification System (NAICS), can be found in the sheets Industry Definitions and Sector Aggregations.
+
+Direct, Indirect and Induced Effect
+The direct effect represents the basic industry sector itself, whether expressed as economic output, jobs, or the associated employment income. For example, industries that are directly in the High Tech Manufacturing sector are the ones shown in the concordance tables in the sheets "Industry Definitions" and "Sector Aggregations."
+
+The indirect effect estimates how much output is needed from other non-basic industries which act as intermediate suppliers to the direct basic industries. For example, the basic sector Mining, Oil and Gas uses a large amount of intermediate inputs from the Utilities sector. The indirect effect is calculated according to data in the province's input-output tables.
+
+The imputed effect estimates the impact of household spending in the local economy. It is calculated according to the household final consumption estimates in the B.C. supply-use and input-output tables. For each area, total after-tax income is translated into output and jobs in non-basic sectors such as retail, low tech business services, etc.
+
+Geographical Impacts
+If the census data indicates that a local area doesn’t have large enough industries to meet the demand that is implied by the indirect and induced effects, the model reallocates the excess to other areas in B.C. with enough capacity. This gives rise to variations in the descriptive statistics which include or exclude the impact that the rest of the province has on the local area and vice versa.
+
+Source: B.C. Local Area Economic Profiles Toolkit, 2023. BC Stats. Copyright Province of British Columbia. All rights reserved. Used with permission by ETSI-BC for non-commercial use only.
+1740509103

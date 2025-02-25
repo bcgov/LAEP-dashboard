@@ -16,4 +16,9 @@
 
 ## Use this file to save functions that your app will use
 
-f = function() beepr::beep()
+`%,%` = paste0
+`%,,%` = paste
+pa = function(x) print(x, n=Inf)
+
+
+home_page = function() htmltools::p(paste(read_lines(here::here() %,% "/app/www/about.txt"), collapse = "\n"))

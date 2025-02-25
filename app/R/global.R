@@ -21,4 +21,11 @@ library(lubridate)  ## for dates
 library(ggplot2)    ## for plots
 library(plotly)     ## for interactive plots
 library(DT)         ## for tables
-pacman::p_load(reactable, shinyjs, shinyWidgets)
+pacman::p_load(reactable, shinyjs, shinyWidgets, fs)
+
+
+xl_path = path(here::here() %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
+
+data = map2(c('Descriptive Stats', 'Jobs', 'Income Dependencies', 'Location Quotients', 'Employment Impact Ratios', 'Avg Incomes'), c(3, 5, 5, 5, 4, 5), function(sheet, skip) readxl::read_excel(xl_path, sheet, skip = skip))
+
+# fix #5
