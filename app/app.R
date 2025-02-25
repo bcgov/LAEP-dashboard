@@ -39,10 +39,16 @@ ui <- function(req) {
             ## hide the standalone figure tab in the sidebar menu
             tags$head(tags$style(HTML("a[href = '#shiny-tab-page7']{ visibility: hidden; }"))),
 
-            div(id = "choose_page_div", pickerInput("choose_page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
+            div(id = "choose_page_div", pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Regional Profile", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
               actionsBox = TRUE,
               iconBase = "fas"
             ))),
+
+            div(id = "regional_profile_choices_div",
+              pickerInput("regional_profile_choices", "Choose the area to profile", choices = edas, multiple = F)
+
+            ),
+
             br(),
             br(),
             div(id = "download_button_div", downloadBttn("download_button", "Download data as excel", size = 'xs', block = F, style = 'material-flat', color = 'primary')),
@@ -78,7 +84,7 @@ server <- function(input, output, session) {
 
       "Home" = fluidRow(box(home_page())),
 
-      "Regional Profile" = fluidRow(p("Regional Profile"))
+      "Regional Profile" = regional_profile_page(input$regional_profile_choices)
     )
   })
 
@@ -105,7 +111,18 @@ server <- function(input, output, session) {
 
   # toggle download button
   observeEvent(input$choose_page, if (input$choose_page == "Home") hide("download_button_div") else show("download_button_div"))
+
+  observeEvent(input$choose_page, if (input$choose_page == "Regional Profile") show("regional_profile_choices_div") else hide("regional_profile_choices_div"))
 }
 
 
+
+
 shiny::shinyApp(ui, server)
+
+
+
+# to dos:
+# load data by RDS  if file exists blah blah
+# use bslib cards for pages - might solve your issue
+# rando colors for infoboxes
