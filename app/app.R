@@ -44,8 +44,9 @@ ui <- function(req) {
               iconBase = "fas"
             ))),
 
-            div(id = "regional_profile_choices_div",
-              pickerInput("regional_profile_choices", "Choose the area to profile", choices = edas, multiple = F)
+            div(id = "choose_region_div",
+              pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
+              pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
 
             ),
 
@@ -77,23 +78,84 @@ ui <- function(req) {
 
 server <- function(input, output, session) {
 
+  # reactables go here
+  region = eventReactive(input$choose_region, input$choose_region)
+  regional_data = eventReactive(region(), filter(data[[1]], REGION_NAME == region()))
+  regional_data_jobs = eventReactive(region(), filter(data[[2]], REGION_NAME == region()))
+  shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
+  regional_data_jobs_w_shift_share = eventReactive(shift_share_years(), filter(regional_data_jobs(), REF_YEAR %in% shift_share_years()))
+
+
+  regional_profile_row_1 = eventReactive(region(), {
+    fluidRow(
+      make_infobox(regional_data()),
+      make_infobox(regional_data(), "Total Jobs", color='navy', icon='arrow-left'),
+      make_infobox(regional_data(), "Average Employment Income", formatter=scales::label_dollar, color='orange')
+    )
+  })
+
+  regional_profile_row_2 = eventReactive(region(), {
+    fluidRow(
+      make_infobox(regional_data(), "Basic Income Share", formatter=scales::label_percent),
+      make_infobox(regional_data(), "Diversity Index", formatter=scales::label_comma),
+      make_infobox(regional_data(), "Forest Sector Vulnerability Index", formatter=scales::label_comma)
+    )
+  })
+
+  regional_profile_t_1 = eventReactive(region(), {
+    regional_data() |>
+      select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
+      mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
+      mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
+      janitor::clean_names(case='sentence')
+  })
+
+
+  regional_profile_g_1 = eventReactive(region(), {
+    regional_data() |>
+      select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
+      janitor::clean_names(case='sentence') |>
+      pivot_longer(cols = 2:last_col()) |>
+      mutate(year = as.factor(`Ref year`)) |>
+      ggplot(aes(y=value, x=year, fill=year)) +
+      geom_col(position = 'dodge') +
+      facet_wrap(~name, scales='free_y') +
+      ggthemes::theme_clean() +
+      theme(legend.position = 'bottom') +
+      scale_fill_viridis_d()
+  })
+
+
   # we will use a massive 'switch' statement to select the correct page to show
 
   output$selected_page = renderUI({
     switch(input$choose_page,
 
-      "Home" = fluidRow(box(home_page())),
+      "Home" = fluidPage(
+        fluidRow(home_text)
+      ),
 
-      "Regional Profile" = regional_profile_page(input$regional_profile_choices)
+      "Regional Profile" = fluidPage(
+        regional_profile_row_1(),
+        regional_profile_row_2(),
+        fluidRow(
+          tabBox(title = "Economic Profile for" %,,% region(), width = '50%',
+            tabPanel("Table", reactable(regional_profile_t_1())),
+            tabPanel("Graph", ggplotly(regional_profile_g_1()))
+          ),
+          tabBox(title = "Shift/Share Analysis for job changes from" %,,% input$choose_shift_share, width = '50%',
+            tabPanel("Table", reactable(regional_profile_t_1())),
+            tabPanel("Graph", ggplotly(regional_profile_g_1()))
+          )
+        )
+      )
     )
   })
 
 
 
-
-
   ## Change links to false to remove the link list from the header
-  bcsapps::bcsHeaderServer(id = 'header', links = TRUE)
+  bcsapps::bcsHeaderServer(id = 'header', links = T)
   bcsapps::bcsFooterServer(id = 'footer')
 
   # set up download button - just using mtcars for now
@@ -112,7 +174,7 @@ server <- function(input, output, session) {
   # toggle download button
   observeEvent(input$choose_page, if (input$choose_page == "Home") hide("download_button_div") else show("download_button_div"))
 
-  observeEvent(input$choose_page, if (input$choose_page == "Regional Profile") show("regional_profile_choices_div") else hide("regional_profile_choices_div"))
+  observeEvent(input$choose_page, if (input$choose_page == "Regional Profile") show("choose_region_div") else hide("choose_region_div"))
 }
 
 
@@ -123,6 +185,5 @@ shiny::shinyApp(ui, server)
 
 
 # to dos:
-# load data by RDS  if file exists blah blah
 # use bslib cards for pages - might solve your issue
 # rando colors for infoboxes
