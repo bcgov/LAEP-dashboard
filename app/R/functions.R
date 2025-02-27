@@ -20,12 +20,10 @@
 `%,,%` = paste
 pa = function(x) print(x, n=Inf)
 
-make_infobox = function(df, title = 'Population', col = NULL, formatter = scales::label_comma, color='olive', icon='map') {
+make_infobox = function(df, title = 'Population', col = NULL, formatter = scales::label_comma, color=NULL, icon='map') {
+  if (is.null(color)) color = sample(c('red', 'yellow', 'aqua', 'blue', 'light-blue', 'green', 'navy', 'teal', 'olive', 'lime', 'orange', 'fuchsia', 'purple', 'maroon', 'black'), 1)
   if (is.null(col)) col = snakecase::to_screaming_snake_case(title)
   infoBox(title, value = formatter()(filter(df, REF_YEAR == last_year) |> pull(!!col)), subtitle = "B.C. Total: " %,% formatter()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)), color = color, icon = icon(icon), fill = T)
 }
 
-
-
-
-
+tooltip_text = function(text="text", tooltip_text = "This is a tooltip yo", icon_name = "info-circle", icon_style = 'color: red;') span(text, tippy::tippy(icon(icon_name, style=icon_style), tooltip_text))

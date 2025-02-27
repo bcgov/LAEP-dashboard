@@ -21,7 +21,7 @@ library(lubridate)  ## for dates
 library(ggplot2)    ## for plots
 library(plotly)     ## for interactive plots
 library(DT)         ## for tables
-pacman::p_load(reactable, shinyjs, shinyWidgets, fs, bslib)
+pacman::p_load(reactable, shinyjs, shinyWidgets, fs, bslib, janitor, snakecase)
 
 
 home_text = paste(read_lines(here::here() %,% "/app/www/about.txt"), collapse = "\n")
@@ -45,3 +45,6 @@ last_year = max(data[[1]]$REF_YEAR)
 first_year = min(data[[1]]$REF_YEAR)
 years = unique(data[[1]]$REF_YEAR)
 shift_share_year_combos = crossing(years, years) |> set_names(c("y1", "y2")) |> filter(y1 < y2) |> transmute(x=y1 %,,% "to" %,,% y2) |> deframe()
+
+home_page = source(here::here() %,% '/home_page.R')
+tooltips = source(here::here() %,% '/tooltips.R')
