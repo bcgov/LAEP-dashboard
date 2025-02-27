@@ -8,8 +8,8 @@ that was previous called the Local Area Economic Dependencies and was last publi
 It combines detailed census data with the province's macroeconomic model and is primarily intended
         to provide information on rural areas and to help estimate the impact of economic changes.</p>
   "),
-  tabBox(width = 12,
-    tabPanel("Framework of the Model",
+  shinydashboard::tabBox(width = 12,
+    shiny::tabPanel("Framework of the Model",
       HTML("<p>The fundamental premise of this work is that the economy of a community can be represented
       by income flows that can be classified as basic or non-basic. Basic income flows into the community
       from the outside world in the form of employment income or non-employment income,
@@ -63,7 +63,7 @@ It combines detailed census data with the province's macroeconomic model and is 
             the rest of the province has on the local area and vice versa.</p>
       ")
     ),
-    tabPanel("Data Sources",
+    shiny::tabPanel("Data Sources",
       HTML("
         <h6>Canadian Census</h6>
                       <p>The census is the most detailed picture available of economic conditions down to the very local level in British Columbia.
@@ -92,7 +92,7 @@ It combines detailed census data with the province's macroeconomic model and is 
             Statistics Canada produces IOTs for each province annually.</p>
       ")
     ),
-    tabPanel("Sector Aggregations",
+    shiny::tabPanel("Sector Aggregations",
       HTML("
       <h6>Basic Industry Sectors</h6>
                       <ul>
@@ -359,7 +359,7 @@ It combines detailed census data with the province's macroeconomic model and is 
                       </ul>
         ")
       ),
-    tabPanel("Local Area Boundaries",
+    shiny::tabPanel("Local Area Boundaries",
       HTML("
         <h6>Geographical Boundaries for Local Areas in the 2020 LAED Model</h6>
                       <dl>
@@ -430,7 +430,7 @@ It combines detailed census data with the province's macroeconomic model and is 
                       </dl>
         ")
       ),
-    tabPanel("Limitations",
+    shiny::tabPanel("Limitations",
       HTML("
         <h6>Reference years</h6>
                       <p>The model uses data from the 2016 and 2021 Censuses. The reference years are for 2015 and 2020, respectively,

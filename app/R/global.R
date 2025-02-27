@@ -13,18 +13,10 @@
 # limitations under the License.
 
 ## Some useful libraries
-library(shiny)
-library(shinydashboard)
-library(tidyverse)  ## for data manipulation
-library(janitor)    ## for cleaning data (includes rounding functions)
-library(lubridate)  ## for dates
-library(ggplot2)    ## for plots
-library(plotly)     ## for interactive plots
-library(DT)         ## for tables
-pacman::p_load(reactable, shinyjs, shinyWidgets, fs, bslib, janitor, snakecase)
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly)
 
 
-home_text = paste(read_lines(here::here() %,% "/app/www/about.txt"), collapse = "\n")
+home_text = paste(readr::read_lines(here::here() %,% "/app/www/about.txt"), collapse = "\n")
 
 xl_path = path(here::here() %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
 

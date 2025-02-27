@@ -85,3 +85,13 @@ h4 {
 html, body, h1, h2, h3, h4, h5, h6 {
   font-family: BCSans;
 }
+
+.value-box {
+  font-size: 12px;
+}
+
+.value-box .fas, .value-box .bi {
+  font-size: 16px;
+}
+
+body {background: tomato;}

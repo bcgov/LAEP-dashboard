@@ -1,156 +1,114 @@
-# notes to self:
-# ask steph y to deploy to shinyapps
-# ask steph y about bslib
-# github this
-# data as csvs?
+# set up app
+source(paste0(here::here(), "/app/R/functions.R"))
+source(paste0(here::here(), "/app/R/global.R"))
 
-
-# Copyright 2023 Province of British Columbia
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+# constants
 last_updated = format(now(), "%b %d, %Y")
 pages = c("Home", "Regional Profile")
 
-ui <- function(req) {
-  shiny::fluidPage(
-    theme = "styles.css",
-    HTML("<html lang='en'>"),
-    fluidRow(
 
-      ## Replace appname with the title that will appear in the header
-      bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP dashboard", github = "Replace with github URL or NULL"),
-      tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")), ## to add BCGov favicon
+ui = page_sidebar(
+  useShinyjs(),
 
-      column(
-        width = 12,
-        style = "margin-top:75px",
+  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "www/styles.css")),
 
-        dashboardPage(
-          skin = "blue",
-          dashboardHeader(title = ""),
+  title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = NULL),
 
-          dashboardSidebar(
-            useShinyjs(),
-            collapsed = FALSE,
-            ## hide the standalone figure tab in the sidebar menu
-            tags$head(tags$style(HTML("a[href = '#shiny-tab-page7']{ visibility: hidden; }"))),
+  sidebar = list(
+    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
+      actionsBox = TRUE,
+      iconBase = "fas"
+    )),
 
-            div(id = "choose_page_div", pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Regional Profile", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
-              actionsBox = TRUE,
-              iconBase = "fas"
-            ))),
+    div(id = "choose_region_div",
+      pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
+      pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
 
-            div(id = "choose_region_div",
-              pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
-              pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
+    ),
 
-            ),
+    br(),
+    br(),
+    div(id = "download_div", downloadBttn("download_button", "Download data!", size = 'sm', block = F, color = 'primary')),
+    div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
+  ),
 
-            br(),
-            br(),
-            div(id = "download_button_div", downloadBttn("download_button", "Download data!", size = 'sm', block = F, color = 'primary')),
-            div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
-          ), ## end sidebar ----
+  div(id = 'Home', uiOutput("Home")),
+  div(id = 'Regional Profile',
+    uiOutput("regional_profile_row1"),
+    uiOutput("regional_profile_row2"),
+    layout_column_wrap(width = 1/2, fill = F, fillable = T,
+      navset_card_tab(full_screen = T, title = "Economic Profile", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotOutput("g1"))),
+      navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis"), nav_panel("Table", reactableOutput("t2"))
+      )
+    ),
+    card("Top 5 Industries by Employment", reactableOutput("t3"))
+  ),
 
-          dashboardBody(uiOutput("selected_page"))
-        ) ## end dashboardPage
-      ),
-
-      bcsapps::bcsFooterUI(id = 'footer')
-    )
-  )
-}
-
-
-
-
-
-
-
-
-
-
-
+  bcsapps::bcsFooterUI(id = 'footer')
+)
 
 server <- function(input, output, session) {
 
-  # reactables go here
   region = eventReactive(input$choose_region, input$choose_region)
   regional_data = eventReactive(region(), filter(data[[1]], REGION_NAME == region()))
-  regional_data_jobs = eventReactive(region(), filter(data[[2]], REGION_NAME == region()))
+  regional_data_jobs = eventReactive(region(), {
+    df = data[[2]] |>
+      filter(REGION_NAME == region()) |>
+      select(-matches("_TOTAL$")) |>
+      select(REF_YEAR, TOTAL:last_col()) |>
+      mutate(across(everything(), as.integer))
+    n = names(df)
+    df = df |>
+      t() |>
+      as_tibble(.name_repair = 'minimal')
+    names(df) = as.character(as.vector(df[1,]))
+    df = df[-1,]
+    df = mutate(df, Industry = to_sentence_case(n[-1]), .before=1)
+  })
+
 
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
 
-  regional_data_jobs_w_shift_share = eventReactive(shift_share_years(), filter(regional_data_jobs(), REF_YEAR %in% shift_share_years()))
-
-  shift_share_t1 = eventReactive(input$choose_shift_share, {
-    df = regional_data_jobs_w_shift_share() |>
-      select(-matches("_TOTAL$")) |>
-      select(TOTAL:last_col()) |>
-      mutate(across(everything(), as.integer))
-
-    df = df |>
-      t() |>
-      as_tibble(.name_repair = 'minimal') |>
-      set_names(shift_share_years()) |>
-      mutate(Industry = to_sentence_case(names(df)), .before=1)
-
+  shift_share_data = eventReactive(regional_data_jobs(), {
+    df = regional_data_jobs() |>
+      select(Industry, !!as.character(shift_share_years()))
     df$change = pull(df[,3]) - pull(df[,2])
     return(df)
   })
 
-  shift_share_t2 = eventReactive(shift_share_t1(), {
-    bind_rows(
-      filter(shift_share_t1(), Industry == "Total") |> mutate(group = "Total"),
-      filter(shift_share_t1(), Industry != "Total") |> arrange(names(shift_share_t1())[3]) |> head(5) |> mutate(group = "Best"),
-      filter(shift_share_t1(), Industry != "Total") |> arrange(names(shift_share_t1())[3]) |> tail(5) |> mutate(group = "Worst")
-    ) |>
-      relocate(group, .before=1)
-  })
 
 
+  output$Home = renderUI(source(here::here() %,% '/home_page.R')$value)
 
-
-
-  regional_profile_row_1 = eventReactive(region(), {
-    fluidRow(
-      make_infobox(regional_data(), "Population", icon='earth-americas'),
-      make_infobox(regional_data(), "Total Jobs", icon='tower-observation'),
-      make_infobox(regional_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills')
+  output$regional_profile_row1 = renderUI(
+    layout_column_wrap(width=1/3, fill = F,
+      make_value_box(regional_data(), "Population", icon='earth-americas'),
+      make_value_box(regional_data(), "Total Jobs", icon='tower-observation'),
+      make_value_box(regional_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills')
     )
-  })
+  )
 
-  regional_profile_row_2 = eventReactive(region(), {
-    fluidRow(
-      make_infobox(regional_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced'),
-      make_infobox(regional_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow'),
-      make_infobox(regional_data(), "Forest Sector Vulnerability Index", formatter=scales::label_comma, icon='tree')
+  output$regional_profile_row2 = renderUI(
+    layout_column_wrap(width = 1/3, fill = F, fillable = F,
+      make_value_box(regional_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced'),
+      make_value_box(regional_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow'),
+      make_value_box(regional_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree')
     )
-  })
+  )
 
-  regional_profile_t_1 = eventReactive(region(), {
+  output$t1 = renderReactable(
     regional_data() |>
       select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
       mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
       mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
-      janitor::clean_names(case='sentence')
-  })
+      janitor::clean_names(case='sentence') |>
+      reactable()
+  )
 
-
-  regional_profile_g_1 = eventReactive(region(), {
+  output$g1 = renderPlot({
+    if (is.null(input$choose_g1)) return(NULL)
     regional_data() |>
-      select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
+      select(REF_YEAR, to_screaming_snake_case(!!input$choose_g1)) |>
       janitor::clean_names(case='sentence') |>
       pivot_longer(cols = 2:last_col()) |>
       mutate(year = as.factor(`Ref year`)) |>
@@ -159,38 +117,36 @@ server <- function(input, output, session) {
       facet_wrap(~name, scales='free_y') +
       ggthemes::theme_clean() +
       theme(legend.position = 'bottom') +
-      scale_fill_viridis_d()
+      scale_fill_viridis_d() +
+      labs(x=NULL, y=NULL, fill=NULL) +
+      guides(fill='none')
+  })
+
+  output$t2 = renderReactable(
+    bind_rows(
+      filter(shift_share_data(), Industry == "Total") |> mutate(group = "Total"),
+      filter(shift_share_data(), Industry != "Total") |> arrange(names(shift_share_data())[3]) |> head(5) |> mutate(group = "Best"),
+      filter(shift_share_data(), Industry != "Total") |> arrange(names(shift_share_data())[3]) |> tail(5) |> mutate(group = "Worst")
+    ) |>
+      relocate(group, .before=1) |>
+      reactable(groupBy = 'group')
+  )
+
+  output$t3 = renderReactable({
+    regional_data_jobs() |>
+      mutate(x = regional_data_jobs()[, ncol(regional_data_jobs())]) |>
+      arrange(desc(x)) |>
+      select(-x) |>
+      filter(Industry != "Total") |>
+      head(5) |>
+      reactable()
   })
 
 
-  # we will use a massive 'switch' statement to select the correct page to show
-
-  output$selected_page = renderUI({
-    switch(input$choose_page,
-
-      "Home" = source(here::here() %,% '/home_page.R')$value,
-
-      "Regional Profile" = fluidPage(
-        regional_profile_row_1(),
-        regional_profile_row_2(),
-        fluidRow(
-          tabBox(title = "Economic Profile for" %,,% region(), width = 6,
-            tabPanel("Table", reactable(regional_profile_t_1())),
-            tabPanel("Graph", ggplotly(regional_profile_g_1()))
-          ),
-          tabBox(title = tooltip_text("Shift/Share Analysis for job changes from" %,,% input$choose_shift_share, tooltips$value$shift_share), width = 6,
-            tabPanel("Table", reactable(shift_share_t2(), groupBy = 'group'))
-          )
-        )
-      )
-    )
-  })
 
 
 
 
-
-  # set up download button - just using mtcars for now
   output$download_button = downloadHandler(
     filename = function() {
       paste('data-', Sys.Date(), '.csv', sep='')
@@ -201,19 +157,28 @@ server <- function(input, output, session) {
     }
   )
 
-  output$update_date <- renderUI(paste("Last updated:", last_updated))
 
-  # toggle download button
-  observeEvent(input$choose_page, if (input$choose_page == "Home") hide("download_button_div") else show("download_button_div"))
 
-  observeEvent(input$choose_page, if (input$choose_page == "Regional Profile") show("choose_region_div") else hide("choose_region_div"))
 
-  ## Change links to false to remove the link list from the header
+
   bcsapps::bcsHeaderServer(id = 'header', links = T)
   bcsapps::bcsFooterServer(id = 'footer')
+
+  observeEvent(input$choose_page, {
+    show(input$choose_page)
+    for (page in setdiff(pages, input$choose_page)) hide(page)
+  })
+
+  observeEvent(input$choose_page, if (input$choose_page == "Home") {
+    hide("choose_region_div")
+    hide("download_div")
+  } else {
+    show("choose_region_div")
+    show("download_div")
+  })
+
+
+
 }
 
-
-
-
-shiny::shinyApp(ui, server)
+shinyApp(ui, server)
