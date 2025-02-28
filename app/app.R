@@ -37,7 +37,7 @@ ui = page_sidebar(
     div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
   ),
 
-  div(id = 'Home', source(here::here() %,% '/home_page.R')$value),
+  div(id = 'Home', home_page),
 
   div(id = 'Regional Profile',
     uiOutput("regional_profile_row1"),
@@ -191,16 +191,9 @@ server <- function(input, output, session) {
 
 
   laeps = reactive({
-    card(
-      full_screen = T,
-      card_title("Scenario #" %,% (input$add_laep_scenario + 1)),
-      layout_column_wrap(width=1/4, fill = F,
-        pickerInput("year", label = "Select Reference Year", choices = years),
-        pickerInput("area", label = "Select Region", choices = regions),
-        pickerInput("industry", label = "Select Industry", choices = industries),
-        pickerInput("SSN", label = "Social Safety Net?", choices = c("Yes", "No"))
-      ),
-      reactable(data[[2]])
+    div(
+      laep_scenario_card(1),
+      laep_scenario_card(2)
     )
   })
 

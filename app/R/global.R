@@ -18,9 +18,9 @@ pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidg
 
 home_text = paste(readr::read_lines(here::here() %,% "/app/www/about.txt"), collapse = "\n")
 
-xl_path = path(here::here() %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
+xl_path = path(here::here() %,% '/app/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
 
-if (!file_exists(here::here() %,% "/data/data.Rds")) {
+if (!file_exists(here::here() %,% "/app/data.Rds")) {
   data = map2(c('Descriptive Stats', 'Jobs', 'Income Dependencies', 'Location Quotients', 'Employment Impact Ratios', 'Avg Incomes'), c(3, 5, 5, 5, 4, 5), function(sheet, skip) readxl::read_excel(xl_path, sheet, skip = skip) |> janitor::clean_names('screaming_snake'))
 
   names(data[[1]]) = str_replace(names(data[[1]]), "_M$", "")
@@ -28,8 +28,8 @@ if (!file_exists(here::here() %,% "/data/data.Rds")) {
   data[[1]] = data[[1]] |>
     mutate(across(c(POPULATION, TOTAL_JOBS, REF_YEAR), as.integer)) |>
     mutate(across(AVERAGE_EMPLOYMENT_INCOME:FOREST_SECTOR_VULNERABILITY_INDEX, as.double))
-  saveRDS(data, "data/data.Rds")
-} else data = readRDS(here::here() %,% "/data/data.Rds")
+  saveRDS(data, here::here() %,% "/app/data.Rds")
+} else data = readRDS(here::here() %,% "/app/data.Rds")
 
 rds = data[[1]] |> filter(GEO_TYPE == "RD") |> unique() |> pull(REGION_NAME)
 edas = data[[1]] |> filter(GEO_TYPE == "EDA") |> unique() |> pull(REGION_NAME)
@@ -40,5 +40,5 @@ regions = setdiff(unique(data[[1]]$REGION_NAME), "British Columbia")
 industries = to_sentence_case(setdiff(names(data[[2]]), c("KEY", "REGION_NAME", "REF_YEAR", "STATISTIC", "GEO_TYPE", "PARENT_RD", "TOTAL")))
 shift_share_year_combos = crossing(years, years) |> set_names(c("y1", "y2")) |> filter(y1 < y2) |> transmute(x=y1 %,,% "to" %,,% y2) |> deframe()
 
-home_page = source(here::here() %,% '/home_page.R')
-tooltips = source(here::here() %,% '/tooltips.R')
+home_page = source(here::here() %,% '/app/home_page.R')
+tooltips = source(here::here() %,% '/app/tooltips.R')

@@ -48,3 +48,21 @@ t2 = function(df, pivot_col, new_col_name) {
   df = relocate(df, all_of(new_col_name), .before=1)
   return(df)
 }
+
+laep_scenario_card = function(i) {
+  card(
+    full_screen = T,
+    card_title("Scenario #" %,% i),
+    layout_column_wrap(width=1/4, fill = F,
+      pickerInput("year", label = "Select Reference Year", choices = years),
+      pickerInput("area", label = "Select Region", choices = regions),
+      pickerInput("industry", label = "Select Industry", choices = industries),
+      pickerInput("SSN", label = "Social Safety Net?", choices = c("Yes", "No"))
+    ),
+    reactableOutput("laep" %,% i),
+    layout_column_wrap(width=1/2, fill = F,
+      actionBttn("add_laep" %,% i, "Add a Scenario"),
+      actionBttn("delete_laep" %,% i, "Delete this Scenario")
+    )
+  )
+}
