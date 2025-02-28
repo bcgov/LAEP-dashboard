@@ -1,23 +1,28 @@
 # set up app
-source(paste0(here::here(), "/app/R/functions.R"))
-source(paste0(here::here(), "/app/R/global.R"))
+is_local = Sys.getenv('SHINY_PORT') == ""
+source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"))
+source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"))
+
 
 # constants
 last_updated = format(now(), "%b %d, %Y")
 pages = c("Home", "Regional Profile", "LAEP Calculator")
-num_laeps = 0
 
 ui = page_sidebar(
   useShinyjs(),
-
+  htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".recalculating {
+    opacity: 1 !important;
+    transition: none !important;
+    color: tomato;
+    /* background-color: tomato; */
+  }")))),
   tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
-
-  #title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
-
+  #tags$head(tags$link(rel = "stylesheet", type = "text/css", href = ifelse(!is_local, '/app/', '') %,% "styles.css")),
+  window_title = "LAEP",
   title = bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
 
   sidebar = list(
-    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "LAEP Calculator", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
+    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
       actionsBox = TRUE,
       iconBase = "fas"
     )),
@@ -29,6 +34,9 @@ ui = page_sidebar(
 
     div(id = "choose_laep_div",
       actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
+      br(),
+      #br(),
+      #actionBttn("reset_laep", "Reset this Page", color = 'danger')
     ),
 
     br(),
@@ -40,10 +48,11 @@ ui = page_sidebar(
   div(id = 'Home', home_page),
 
   div(id = 'Regional Profile',
+    h1(textOutput("region_title")),
     uiOutput("regional_profile_row1"),
     uiOutput("regional_profile_row2"),
     layout_column_wrap(width = 1/2, fill = F, fillable = T,
-      navset_card_tab(full_screen = T, title = textOutput("region"), nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
+      navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
       navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis"), nav_panel("Table", reactableOutput("t2"))
       )
     ),
@@ -77,7 +86,7 @@ server <- function(input, output, session) {
   })
 
 
-  output$region = renderText("Economic Profile: " %,% region())
+  output$region_title = renderText("Economic Profile: " %,% region())
 
   output$regional_profile_row1 = renderUI(
     layout_column_wrap(width=1/3, fill = F,
@@ -183,19 +192,29 @@ server <- function(input, output, session) {
     show("download_div")
   })
 
-  output$laep = renderUI(laeps())
+  observe(walk(1:num_laeps(), function(i) output[['laep_t' %,% i]] = renderReactable({
+    data[[2]] |>
+      filter(REF_YEAR == input[['laep_year_' %,% i]]) |>
+      filter(REGION_NAME == input[['laep_area_' %,% i]]) |>
+      select(to_screaming_snake_case(!!input[['laep_industry_' %,% i]])) |>
+      reactable(defaultPageSize = 5)
+  })))
 
 
-  #dec/incr ement num_leaps based on button presses
-  #add buttons at bottom of card
-
-
-  laeps = reactive({
-    div(
-      laep_scenario_card(1),
-      laep_scenario_card(2)
-    )
+  num_laeps = reactiveVal(0)
+  observeEvent(input$add_laep_scenario, {
+    num_laeps(num_laeps() + 1)
+    insertUI("#laep", "beforeEnd", div(laep_scenario_card(num_laeps())), immediate = T)
   })
+  observe({
+    req(num_laeps())
+    for (i in 1:num_laeps()) {
+      observeEvent(input[["delete_laep_" %,% i]], {
+        removeUI("#laep_" %,% i, immediate = T)
+      })
+    }
+  })
+
 
 }
 

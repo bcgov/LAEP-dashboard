@@ -112,3 +112,10 @@ html, body, h1, h2, h3, h4, h5, h6 {
   min-width: 350px;
   margin-right: 0px;
 }
+
+
+.recalculating {
+    opacity: 1 !important;
+    transition: none !important;
+    color: tomato;
+}

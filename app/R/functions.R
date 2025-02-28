@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-## Use this file to save functions that your app will use
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly)
 
 `%,%` = paste0
 `%,,%` = paste
@@ -51,18 +51,20 @@ t2 = function(df, pivot_col, new_col_name) {
 
 laep_scenario_card = function(i) {
   card(
+    id = "laep_" %,% i,
     full_screen = T,
     card_title("Scenario #" %,% i),
     layout_column_wrap(width=1/4, fill = F,
-      pickerInput("year", label = "Select Reference Year", choices = years),
-      pickerInput("area", label = "Select Region", choices = regions),
-      pickerInput("industry", label = "Select Industry", choices = industries),
-      pickerInput("SSN", label = "Social Safety Net?", choices = c("Yes", "No"))
+      pickerInput("laep_year_" %,% i, label = "Select Reference Year", choices = years),
+      pickerInput("laep_area_" %,% i, label = "Select Region", choices = regions),
+      pickerInput("laep_industry_" %,% i, label = "Select Industry", choices = industries),
+      pickerInput("laep_SSN_" %,% i, label = "Social Safety Net?", choices = c("Yes", "No"))
     ),
-    reactableOutput("laep" %,% i),
-    layout_column_wrap(width=1/2, fill = F,
-      actionBttn("add_laep" %,% i, "Add a Scenario"),
-      actionBttn("delete_laep" %,% i, "Delete this Scenario")
-    )
+    #reactableOutput("laep_t" %,% i),
+    reactableOutput("laep_t" %,% i),
+    #layout_column_wrap(width=1/2, fill = F,
+      #actionBttn("add_laep" %,% i, "Add a Scenario"),
+      div(style = 'max-width: 300px;', actionBttn("delete_laep_" %,% i, "Delete this Scenario"))
+    #)
   )
 }
