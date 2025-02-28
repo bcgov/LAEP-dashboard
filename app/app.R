@@ -4,8 +4,8 @@ source(paste0(here::here(), "/app/R/global.R"))
 
 # constants
 last_updated = format(now(), "%b %d, %Y")
-pages = c("Home", "Regional Profile")
-
+pages = c("Home", "Regional Profile", "LAEP Calculator")
+num_laeps = 0
 
 ui = page_sidebar(
   useShinyjs(),
@@ -17,7 +17,7 @@ ui = page_sidebar(
   title = bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
 
   sidebar = list(
-    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
+    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "LAEP Calculator", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
       actionsBox = TRUE,
       iconBase = "fas"
     )),
@@ -25,7 +25,10 @@ ui = page_sidebar(
     div(id = "choose_region_div",
       pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
       pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
+    ),
 
+    div(id = "choose_laep_div",
+      actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
     ),
 
     br(),
@@ -34,7 +37,8 @@ ui = page_sidebar(
     div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
   ),
 
-  div(id = 'Home', uiOutput("Home")),
+  div(id = 'Home', source(here::here() %,% '/home_page.R')$value),
+
   div(id = 'Regional Profile',
     uiOutput("regional_profile_row1"),
     uiOutput("regional_profile_row2"),
@@ -45,6 +49,8 @@ ui = page_sidebar(
     ),
     card("Top 5 Industries by Employment", reactableOutput("t3"))
   ),
+
+  div(id = 'LAEP Calculator', uiOutput("laep")),
 
   bcsapps::bcsFooterUI(id = 'footer')
 )
@@ -59,13 +65,10 @@ server <- function(input, output, session) {
       select(-matches("_TOTAL$")) |>
       select(REF_YEAR, TOTAL:last_col()) |>
       mutate(across(everything(), as.integer))
-
     t2(df, "REF_YEAR", "Industry")
   })
 
-
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
-
   shift_share_data = eventReactive(regional_data_jobs(), {
     df = regional_data_jobs() |>
       select(Industry, !!as.character(shift_share_years()))
@@ -73,9 +76,6 @@ server <- function(input, output, session) {
     return(df)
   })
 
-
-
-  output$Home = renderUI(source(here::here() %,% '/home_page.R')$value)
 
   output$region = renderText("Economic Profile: " %,% region())
 
@@ -95,14 +95,14 @@ server <- function(input, output, session) {
     )
   )
 
-  output$t1 = renderReactable(
+  output$t1 = renderReactable({
     regional_data() |>
       select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
       mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
       mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
-      janitor::clean_names(case='sentence') |>
+      t2("REF_YEAR", "Variable") |>
       reactable()
-  )
+  })
 
   output$g1 = renderPlotly({
     if (is.null(input$choose_g1)) return(NULL)
@@ -172,12 +172,37 @@ server <- function(input, output, session) {
   observeEvent(input$choose_page, if (input$choose_page == "Home") {
     hide("choose_region_div")
     hide("download_div")
-  } else {
+    hide("choose_laep_div")
+  } else if (input$choose_page == "Regional Profile") {
     show("choose_region_div")
+    show("download_div")
+    hide("choose_laep_div")
+  } else if (input$choose_page == "LAEP Calculator") {
+    show("choose_laep_div")
+    hide("choose_region_div")
     show("download_div")
   })
 
+  output$laep = renderUI(laeps())
 
+
+  #dec/incr ement num_leaps based on button presses
+  #add buttons at bottom of card
+
+
+  laeps = reactive({
+    card(
+      full_screen = T,
+      card_title("Scenario #" %,% (input$add_laep_scenario + 1)),
+      layout_column_wrap(width=1/4, fill = F,
+        pickerInput("year", label = "Select Reference Year", choices = years),
+        pickerInput("area", label = "Select Region", choices = regions),
+        pickerInput("industry", label = "Select Industry", choices = industries),
+        pickerInput("SSN", label = "Social Safety Net?", choices = c("Yes", "No"))
+      ),
+      reactable(data[[2]])
+    )
+  })
 
 }
 
