@@ -12,7 +12,7 @@ ui = page_sidebar(
 
   tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "www/styles.css")),
 
-  title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = NULL),
+  title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
 
   sidebar = list(
     pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
