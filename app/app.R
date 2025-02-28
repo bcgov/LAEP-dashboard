@@ -10,9 +10,11 @@ pages = c("Home", "Regional Profile")
 ui = page_sidebar(
   useShinyjs(),
 
-  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "www/styles.css")),
+  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
 
-  title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
+  #title = bcsapps_bslib_header(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
+
+  title = bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
 
   sidebar = list(
     pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart")), options = pickerOptions(
@@ -37,7 +39,7 @@ ui = page_sidebar(
     uiOutput("regional_profile_row1"),
     uiOutput("regional_profile_row2"),
     layout_column_wrap(width = 1/2, fill = F, fillable = T,
-      navset_card_tab(full_screen = T, title = "Economic Profile", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotOutput("g1"))),
+      navset_card_tab(full_screen = T, title = textOutput("region"), nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
       navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis"), nav_panel("Table", reactableOutput("t2"))
       )
     ),
@@ -57,13 +59,8 @@ server <- function(input, output, session) {
       select(-matches("_TOTAL$")) |>
       select(REF_YEAR, TOTAL:last_col()) |>
       mutate(across(everything(), as.integer))
-    n = names(df)
-    df = df |>
-      t() |>
-      as_tibble(.name_repair = 'minimal')
-    names(df) = as.character(as.vector(df[1,]))
-    df = df[-1,]
-    df = mutate(df, Industry = to_sentence_case(n[-1]), .before=1)
+
+    t2(df, "REF_YEAR", "Industry")
   })
 
 
@@ -79,6 +76,8 @@ server <- function(input, output, session) {
 
 
   output$Home = renderUI(source(here::here() %,% '/home_page.R')$value)
+
+  output$region = renderText("Economic Profile: " %,% region())
 
   output$regional_profile_row1 = renderUI(
     layout_column_wrap(width=1/3, fill = F,
@@ -105,9 +104,9 @@ server <- function(input, output, session) {
       reactable()
   )
 
-  output$g1 = renderPlot({
+  output$g1 = renderPlotly({
     if (is.null(input$choose_g1)) return(NULL)
-    regional_data() |>
+    p = regional_data() |>
       select(REF_YEAR, to_screaming_snake_case(!!input$choose_g1)) |>
       janitor::clean_names(case='sentence') |>
       pivot_longer(cols = 2:last_col()) |>
@@ -120,6 +119,7 @@ server <- function(input, output, session) {
       scale_fill_viridis_d() +
       labs(x=NULL, y=NULL, fill=NULL) +
       guides(fill='none')
+    ggplotly(p)
   })
 
   output$t2 = renderReactable(

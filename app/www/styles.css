@@ -94,4 +94,21 @@ html, body, h1, h2, h3, h4, h5, h6 {
   font-size: 16px;
 }
 
-body {background: tomato;}
+/*Navbar customization*/
+.navbar {
+    margin: 30px 0; /*push navbar down height of BCStats header*/
+    background:#d4dfeb; /*change background color*/
+    border-color:#29619d;
+}
+.navbar-header { /*remove navbar header*/
+  height:0;
+}
+
+#link-list .shiny-input-select {
+  min-width: 900px;
+}
+
+#header-links-linkList > div > div > div > div {
+  min-width: 350px;
+  margin-right: 0px;
+}
