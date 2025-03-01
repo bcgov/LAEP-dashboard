@@ -1,4 +1,3 @@
-# set up app
 is_local = Sys.getenv('SHINY_PORT') == ""
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"))
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"))
@@ -8,61 +7,83 @@ source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"))
 last_updated = format(now(), "%b %d, %Y")
 pages = c("Home", "Regional Profile", "LAEP Calculator")
 
-ui = page_sidebar(
-  useShinyjs(),
-  htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".recalculating {
+
+ui <- function(req) {
+  shiny::fluidPage(
+    theme = "styles.css",
+    HTML("<html lang='en'>"),
+    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".recalculating {
     opacity: 1 !important;
     transition: none !important;
     color: tomato;
     /* background-color: tomato; */
   }")))),
-  tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
-  #tags$head(tags$link(rel = "stylesheet", type = "text/css", href = ifelse(!is_local, '/app/', '') %,% "styles.css")),
-  window_title = "LAEP",
-  title = bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
+    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header-links-linkList > div > div > div > div {
+  min-width: 280px;}")))),
 
-  sidebar = list(
-    pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
-      actionsBox = TRUE,
-      iconBase = "fas"
-    )),
+    fluidRow(
 
-    div(id = "choose_region_div",
-      pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
-      pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
-    ),
 
-    div(id = "choose_laep_div",
-      actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
-      br(),
-      #br(),
-      #actionBttn("reset_laep", "Reset this Page", color = 'danger')
-    ),
+      ## Replace appname with the title that will appear in the header
+      #bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP", github = "Replace with github URL or NULL"),
+      bcsHeader(id = 'header', appname = "LAEP", github = "Replace with github URL or NULL"),
 
-    br(),
-    br(),
-    div(id = "download_div", downloadBttn("download_button", "Download data!", size = 'sm', block = F, color = 'primary')),
-    div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
-  ),
+      tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")), ## to add BCGov favicon
 
-  div(id = 'Home', home_page),
+      column(width = 12,
+        style = "margin-top:100px",
 
-  div(id = 'Regional Profile',
-    h1(textOutput("region_title")),
-    uiOutput("regional_profile_row1"),
-    uiOutput("regional_profile_row2"),
-    layout_column_wrap(width = 1/2, fill = F, fillable = T,
-      navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
-      navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
-      )
-    ),
-    card("Top 5 Industries by Employment", reactableOutput("t3"))
-  ),
+        page_sidebar(
+          useShinyjs(),
+          window_title = "LAEP",
 
-  div(id = 'LAEP Calculator', uiOutput("laep")),
+          sidebar = list(
+            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
+              actionsBox = TRUE,
+              iconBase = "fas"
+            )),
 
-  bcsapps::bcsFooterUI(id = 'footer')
-)
+            div(id = "choose_region_div",
+              pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
+              pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
+            ),
+
+            div(id = "choose_laep_div",
+              actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
+              br(),
+              #br(),
+              #actionBttn("reset_laep", "Reset this Page", color = 'danger')
+            ),
+
+            br(),
+            br(),
+            div(id = "download_div", downloadBttn("download_button", "Download data!", size = 'sm', block = F, color = 'primary')),
+            div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
+          ),
+
+          div(id = 'Home', home_page),
+
+          div(id = 'Regional Profile',
+            h1(textOutput("region_title")),
+            uiOutput("regional_profile_row1"),
+            uiOutput("regional_profile_row2"),
+            layout_column_wrap(width = 1/2, fill = F, fillable = T,
+              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
+              navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
+              )
+            ),
+            card("Top 5 Industries by Employment", reactableOutput("t3"))
+          ),
+
+          div(id = 'LAEP Calculator', uiOutput("laep"))
+
+        )
+      ),
+
+      bcsapps::bcsFooterUI(id = 'footer')
+    )
+  )
+}
 
 server <- function(input, output, session) {
 
@@ -214,6 +235,8 @@ server <- function(input, output, session) {
       })
     }
   })
+
+
 
 
 }
