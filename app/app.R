@@ -20,6 +20,7 @@ ui <- function(req) {
   }")))),
     htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header-links-linkList > div > div > div > div {
   min-width: 280px;}")))),
+    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".bslib-card[data-full-screen='true'] {z-index: 999999999;}")))),
 
     fluidRow(
 

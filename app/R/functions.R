@@ -72,8 +72,8 @@ laep_scenario_card = function(i) {
 bcsHeader = function (id, appname, github = NULL)
 {
   ns <- shiny::NS(id)
-  #htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed; z-index:10000;\"}"))),
-  htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed;\"}"))),
+  htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed; z-index:10000;\"}"))),
+  #htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed;\"}"))),
 
     htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".header {padding:0 0px 0 0px; display:flex; height:80px; width:100%;}"))),
     htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".banner {width:100%; display:flex; justify-content:flex-start; align-items:center; margin: 0 10px 0 10px}"))),
