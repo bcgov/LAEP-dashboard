@@ -53,7 +53,7 @@ ui = page_sidebar(
     uiOutput("regional_profile_row2"),
     layout_column_wrap(width = 1/2, fill = F, fillable = T,
       navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
-      navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis"), nav_panel("Table", reactableOutput("t2"))
+      navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
       )
     ),
     card("Top 5 Industries by Employment", reactableOutput("t3"))
