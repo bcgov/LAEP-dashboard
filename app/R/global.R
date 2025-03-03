@@ -34,6 +34,11 @@ data = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/data.Rds")
 RDs = data[[1]] |> filter(GEO_TYPE == "RD") |> pull(REGION_NAME) |> unique()
 EDAs = data[[1]] |> filter(GEO_TYPE == "EDA") |> pull(REGION_NAME) |> unique()
 
+# HUGE questions:
+# Why does it say 'RD' at the end of some of these?
+# is data[[1]] consistent with data[[2]] and so on
+# do these line up nicely with bcmaps?
+
 last_year = max(data[[1]]$REF_YEAR)
 first_year = min(data[[1]]$REF_YEAR)
 years = unique(data[[1]]$REF_YEAR)
@@ -43,3 +48,7 @@ industries = to_sentence_case(setdiff(names(data[[2]]), c("KEY", "REGION_NAME", 
 
 home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page.R')$value
 tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')$value
+
+
+BC_sf = bc_bound()
+RDs_sf = regional_districts()

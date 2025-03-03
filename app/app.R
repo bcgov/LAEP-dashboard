@@ -70,7 +70,9 @@ ui <- function(req) {
             uiOutput("regional_profile_row1"),
             uiOutput("regional_profile_row2"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
-              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1"))),
+              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1")),
+                nav_panel("Map", leafletOutput("l1"))
+              ),
               navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
               )
             ),
@@ -156,6 +158,16 @@ server <- function(input, output, session) {
       labs(x=NULL, y=NULL, fill=NULL) +
       guides(fill='none')
     ggplotly(p)
+  })
+
+  output$l1 = renderLeaflet({
+    m = filter(RDs_sf, str_detect(ADMIN_AREA_NAME, str_squish(str_replace(RD(), "RD", "")))) # kluge
+    #if (nrow(m) != 1) browser()
+    if (nrow(m) != 1) return(NULL)
+    st_transform(m, crs = 4326) |>
+      leaflet() |>
+      addTiles() |>
+      addPolygons()
   })
 
   output$t2 = renderReactable(
