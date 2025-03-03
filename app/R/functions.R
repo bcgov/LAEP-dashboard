@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly)
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps)
 
 `%,%` = paste0
 `%,,%` = paste
@@ -23,9 +23,7 @@ pa = function(x) print(x, n=Inf)
 tooltip_text = function(text="text", tooltip_text = "This is a tooltip yo", icon_name = "info-circle", icon_style = 'color: red;') span(text, tippy::tippy(icon(icon_name, style=icon_style), tooltip_text))
 
 make_value_box = function(df, title = 'Population', col = NULL, formatter = scales::label_comma, theme=NULL, icon='map') {
-  all_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
-
-  if (is.null(theme)) theme = sample(all_themes, 1)
+  if (is.null(theme)) theme = sample(bs_themes, 1)
   if (is.null(col)) col = snakecase::to_screaming_snake_case(title)
   bslib::value_box(
     title = title,
@@ -56,7 +54,7 @@ laep_scenario_card = function(i) {
     card_title("Scenario #" %,% i),
     layout_column_wrap(width=1/4, fill = F,
       pickerInput("laep_year_" %,% i, label = "Select Reference Year", choices = years),
-      pickerInput("laep_area_" %,% i, label = "Select Region", choices = regions),
+      pickerInput("laep_area_" %,% i, label = "Select Region", choices = RDs),
       pickerInput("laep_industry_" %,% i, label = "Select Industry", choices = industries),
       pickerInput("laep_SSN_" %,% i, label = "Social Safety Net?", choices = c("Yes", "No"))
     ),
@@ -93,4 +91,17 @@ bcsHeader = function (id, appname, github = NULL)
             shiny::uiOutput(ns("links_yn"))), if (!is.null(github))
               htmltools::tags$a(href = github, shiny::icon("github",
                 "fa-lg"), style = "color:white")))))
+}
+
+
+clean_regions = function(x) {
+  x |>
+    str_replace("Regional District( of)?", "") |>
+    str_replace("Region", "") |>
+    str_replace("RD", "") |>
+    str_replace("-", " ") |>
+    str_replace("\\(.+\\)", "") |>
+    str_replace("-", " ") |>
+    str_replace("qathet", "Powell River") |>
+    str_squish()
 }

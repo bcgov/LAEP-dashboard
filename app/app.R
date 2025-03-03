@@ -70,7 +70,7 @@ ui <- function(req) {
             uiOutput("regional_profile_row1"),
             uiOutput("regional_profile_row2"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
-              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T), plotlyOutput("g1")),
+              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
                 nav_panel("Map", leafletOutput("l1"))
               ),
               navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
@@ -117,19 +117,20 @@ server <- function(input, output, session) {
 
   output$EDA_h1 = renderText("Economic Profile: " %,% EDA())
 
+  # maybe make this prettier in a self-contained function
   output$regional_profile_row1 = renderUI(
     layout_column_wrap(width=1/3, fill = F,
-      make_value_box(EDA_data(), "Population", icon='earth-americas'),
-      make_value_box(EDA_data(), "Total Jobs", icon='tower-observation'),
-      make_value_box(EDA_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills')
+      make_value_box(EDA_data(), "Population", icon='earth-americas', theme = bs_themes_6[1]),
+      make_value_box(EDA_data(), "Total Jobs", icon='tower-observation', theme = bs_themes_6[2]),
+      make_value_box(EDA_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills', theme = bs_themes_6[3])
     )
   )
 
   output$regional_profile_row2 = renderUI(
     layout_column_wrap(width = 1/3, fill = F, fillable = F,
-      make_value_box(EDA_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced'),
-      make_value_box(EDA_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow'),
-      make_value_box(EDA_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree')
+      make_value_box(EDA_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced', theme = bs_themes_6[4]),
+      make_value_box(EDA_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow', theme = bs_themes_6[5]),
+      make_value_box(EDA_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree', theme = bs_themes_6[6])
     )
   )
 

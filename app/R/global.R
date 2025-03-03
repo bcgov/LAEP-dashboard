@@ -31,8 +31,19 @@ xl_path = path(here::here() %,% ifelse(is_local, '/app', '') %,% '/data/Local Ar
 
 data = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/data.Rds")
 
-RDs = data[[1]] |> filter(GEO_TYPE == "RD") |> pull(REGION_NAME) |> unique()
-EDAs = data[[1]] |> filter(GEO_TYPE == "EDA") |> pull(REGION_NAME) |> unique()
+data[[1]] = mutate(data[[1]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
+data[[2]] = mutate(data[[2]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
+
+RDs = data[[1]] |>
+  filter(GEO_TYPE == "RD") |>
+  pull(REGION_NAME) |>
+  unique() |>
+  sort()
+EDAs = data[[1]] |>
+  filter(GEO_TYPE == "EDA") |>
+  pull(REGION_NAME) |>
+  unique() |>
+  sort()
 
 # HUGE questions:
 # Why does it say 'RD' at the end of some of these?
@@ -51,4 +62,11 @@ tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R
 
 
 BC_sf = bc_bound()
-RDs_sf = regional_districts()
+RDs_sf = regional_districts() |>
+  mutate(ADMIN_AREA_NAME_CLEANED = clean_regions(ADMIN_AREA_NAME), .before=1)
+
+# Note: "Northern Rockies" & "Skeena Queen Charlotte" are not showing up
+# RDs[!RDs %in% RDs_sf$ADMIN_AREA_NAME_CLEANED]
+
+bs_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
+bs_themes_6 = sample(bs_themes, 6)
