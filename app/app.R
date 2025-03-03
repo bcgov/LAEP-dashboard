@@ -39,13 +39,14 @@ ui <- function(req) {
           window_title = "LAEP",
 
           sidebar = list(
-            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Home", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
+            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Regional Profile", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
               actionsBox = TRUE,
               iconBase = "fas"
             )),
 
             div(id = "choose_region_div",
-              pickerInput("choose_region", "Choose the area to profile", choices = edas, multiple = F),
+              pickerInput("choose_RD", "Choose the RD to profile", choices = RDs, multiple = F),
+              pickerInput("choose_EDA", "Choose the EDA to profile", choices = EDAs, multiple = F),
               pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
             ),
 
@@ -58,14 +59,14 @@ ui <- function(req) {
 
             br(),
             br(),
-            div(id = "download_div", downloadBttn("download_button", "Download data!", size = 'sm', block = F, color = 'primary')),
+            div(id = "download_div", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
             div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
           ),
 
           div(id = 'Home', home_page),
 
           div(id = 'Regional Profile',
-            h1(textOutput("region_title")),
+            h1(textOutput("EDA_h1")),
             uiOutput("regional_profile_row1"),
             uiOutput("regional_profile_row2"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
@@ -88,11 +89,15 @@ ui <- function(req) {
 
 server <- function(input, output, session) {
 
-  region = eventReactive(input$choose_region, input$choose_region)
-  regional_data = eventReactive(region(), filter(data[[1]], REGION_NAME == region()))
-  regional_data_jobs = eventReactive(region(), {
+  RD = eventReactive(input$choose_RD, input$choose_RD)
+  EDA = eventReactive(input$choose_EDA, input$choose_EDA)
+
+  observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_EDA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
+
+  EDA_data = eventReactive(EDA(), filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == EDA()))
+  EDA_data_jobs = eventReactive(EDA(), {
     df = data[[2]] |>
-      filter(REGION_NAME == region()) |>
+      filter(GEO_TYPE == "EDA", REGION_NAME == EDA()) |>
       select(-matches("_TOTAL$")) |>
       select(REF_YEAR, TOTAL:last_col()) |>
       mutate(across(everything(), as.integer))
@@ -100,34 +105,34 @@ server <- function(input, output, session) {
   })
 
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
-  shift_share_data = eventReactive(regional_data_jobs(), {
-    df = regional_data_jobs() |>
+  shift_share_data = eventReactive(EDA_data_jobs(), {
+    df = EDA_data_jobs() |>
       select(Industry, !!as.character(shift_share_years()))
     df$change = pull(df[,3]) - pull(df[,2])
     return(df)
   })
 
 
-  output$region_title = renderText("Economic Profile: " %,% region())
+  output$EDA_h1 = renderText("Economic Profile: " %,% EDA())
 
   output$regional_profile_row1 = renderUI(
     layout_column_wrap(width=1/3, fill = F,
-      make_value_box(regional_data(), "Population", icon='earth-americas'),
-      make_value_box(regional_data(), "Total Jobs", icon='tower-observation'),
-      make_value_box(regional_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills')
+      make_value_box(EDA_data(), "Population", icon='earth-americas'),
+      make_value_box(EDA_data(), "Total Jobs", icon='tower-observation'),
+      make_value_box(EDA_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills')
     )
   )
 
   output$regional_profile_row2 = renderUI(
     layout_column_wrap(width = 1/3, fill = F, fillable = F,
-      make_value_box(regional_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced'),
-      make_value_box(regional_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow'),
-      make_value_box(regional_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree')
+      make_value_box(EDA_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced'),
+      make_value_box(EDA_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow'),
+      make_value_box(EDA_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree')
     )
   )
 
   output$t1 = renderReactable({
-    regional_data() |>
+    EDA_data() |>
       select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
       mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
       mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
@@ -137,7 +142,7 @@ server <- function(input, output, session) {
 
   output$g1 = renderPlotly({
     if (is.null(input$choose_g1)) return(NULL)
-    p = regional_data() |>
+    p = EDA_data() |>
       select(REF_YEAR, to_screaming_snake_case(!!input$choose_g1)) |>
       janitor::clean_names(case='sentence') |>
       pivot_longer(cols = 2:last_col()) |>
@@ -164,8 +169,8 @@ server <- function(input, output, session) {
   )
 
   output$t3 = renderReactable({
-    regional_data_jobs() |>
-      mutate(x = regional_data_jobs()[, ncol(regional_data_jobs())]) |>
+    EDA_data_jobs() |>
+      mutate(x = EDA_data_jobs()[, ncol(EDA_data_jobs())]) |>
       arrange(desc(x)) |>
       select(-x) |>
       filter(Industry != "Total") |>
@@ -183,7 +188,7 @@ server <- function(input, output, session) {
       paste('data-', Sys.Date(), '.csv', sep='')
     },
     content = function(con) {
-      data = regional_data()
+      data = EDA_data()
       write.csv(data, con)
     }
   )

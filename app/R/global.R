@@ -31,14 +31,15 @@ xl_path = path(here::here() %,% ifelse(is_local, '/app', '') %,% '/data/Local Ar
 
 data = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/data.Rds")
 
-rds = data[[1]] |> filter(GEO_TYPE == "RD") |> unique() |> pull(REGION_NAME)
-edas = data[[1]] |> filter(GEO_TYPE == "EDA") |> unique() |> pull(REGION_NAME)
+RDs = data[[1]] |> filter(GEO_TYPE == "RD") |> pull(REGION_NAME) |> unique()
+EDAs = data[[1]] |> filter(GEO_TYPE == "EDA") |> pull(REGION_NAME) |> unique()
+
 last_year = max(data[[1]]$REF_YEAR)
 first_year = min(data[[1]]$REF_YEAR)
 years = unique(data[[1]]$REF_YEAR)
-regions = setdiff(unique(data[[1]]$REGION_NAME), "British Columbia")
-industries = to_sentence_case(setdiff(names(data[[2]]), c("KEY", "REGION_NAME", "REF_YEAR", "STATISTIC", "GEO_TYPE", "PARENT_RD", "TOTAL")))
 shift_share_year_combos = crossing(years, years) |> set_names(c("y1", "y2")) |> filter(y1 < y2) |> transmute(x=y1 %,,% "to" %,,% y2) |> deframe()
 
-home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page.R')
-tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')
+industries = to_sentence_case(setdiff(names(data[[2]]), c("KEY", "REGION_NAME", "REF_YEAR", "STATISTIC", "GEO_TYPE", "PARENT_RD", "TOTAL")))
+
+home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page.R')$value
+tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')$value
