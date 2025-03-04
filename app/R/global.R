@@ -12,27 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## Some useful libraries
+load_data = F
 
 is_local = Sys.getenv('SHINY_PORT') == ""
 
 xl_path = path(here::here() %,% ifelse(is_local, '/app', '') %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
 
-# if (!file_exists(here::here() %,% "/app/data.Rds")) {
-#   data = map2(c('Descriptive Stats', 'Jobs', 'Income Dependencies', 'Location Quotients', 'Employment Impact Ratios', 'Avg Incomes'), c(3, 5, 5, 5, 4, 5), function(sheet, skip) readxl::read_excel(xl_path, sheet, skip = skip) |> janitor::clean_names('screaming_snake'))
-#
-#   names(data[[1]]) = str_replace(names(data[[1]]), "_M$", "")
-#
-#   data[[1]] = data[[1]] |>
-#     mutate(across(c(POPULATION, TOTAL_JOBS, REF_YEAR), as.integer)) |>
-#     mutate(across(AVERAGE_EMPLOYMENT_INCOME:FOREST_SECTOR_VULNERABILITY_INDEX, as.double))
-#   saveRDS(data, here::here() %,% "/app/data.Rds")
-# } else data = readRDS(here::here() %,% "/app/data.Rds")
+if (load_data) {
+  data = map2(c('Descriptive Stats', 'Jobs', 'Income Dependencies', 'Location Quotients', 'Employment Impact Ratios', 'Avg Incomes'), c(3, 5, 5, 5, 4, 5), function(sheet, skip) readxl::read_excel(xl_path, sheet, skip = skip) |> janitor::clean_names('screaming_snake'))
 
-data = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/data.Rds")
+  names(data[[1]]) = str_replace(names(data[[1]]), "_M$", "")
 
-data[[1]] = mutate(data[[1]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
-data[[2]] = mutate(data[[2]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
+  data[[1]] = data[[1]] |>
+    mutate(across(c(POPULATION, TOTAL_JOBS, REF_YEAR), as.integer)) |>
+    mutate(across(AVERAGE_EMPLOYMENT_INCOME:FOREST_SECTOR_VULNERABILITY_INDEX, as.double))
+
+  data[[1]] = mutate(data[[1]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
+  data[[2]] = mutate(data[[2]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
+
+  saveRDS(data, here::here() %,% ifelse(is_local, '/app', '') %,% "/app/data.Rds")
+
+  BC_sf = bc_bound()
+  saveRDS(BC_sf, here::here() %,% ifelse(is_local, '/app', '') %,% "/BC_sf.Rds")
+
+  RDs_sf = regional_districts() |>
+    mutate(ADMIN_AREA_NAME_CLEANED = clean_regions(ADMIN_AREA_NAME), .before=1) |>
+    select(ADMIN_AREA_NAME_CLEANED, geometry) |>
+    rename(REGION_NAME = ADMIN_AREA_NAME_CLEANED) |>
+    inner_join(filter(data[[1]], GEO_TYPE == "RD")) |>
+    select(REGION_NAME, geometry, REF_YEAR, POPULATION:last_col()) |>
+    st_as_sf() |>
+    st_transform(crs = 4326)
+
+  saveRDS(RDs_sf, here::here() %,% ifelse(is_local, '/app', '') %,% "/RDs_sf.Rds")
+
+} else {
+  data = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/data.Rds")
+  BC_sf = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/BC_sf.Rds")
+  RDs_sf = readRDS(here::here() %,% ifelse(is_local, '/app', '') %,% "/RDs_sf.Rds")
+}
+
+
+
+
 
 RDs = data[[1]] |>
   filter(GEO_TYPE == "RD") |>
@@ -61,15 +83,7 @@ home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page
 tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')$value
 
 
-BC_sf = bc_bound()
-RDs_sf = regional_districts() |>
-  mutate(ADMIN_AREA_NAME_CLEANED = clean_regions(ADMIN_AREA_NAME), .before=1) |>
-  select(ADMIN_AREA_NAME_CLEANED, geometry) |>
-  rename(REGION_NAME = ADMIN_AREA_NAME_CLEANED) |>
-  inner_join(filter(data[[1]], GEO_TYPE == "RD")) |>
-  select(REGION_NAME, geometry, REF_YEAR, POPULATION:last_col()) |>
-  st_as_sf() |>
-  st_transform(crs = 4326)
+
 
 
 
@@ -79,5 +93,6 @@ RDs_sf = regional_districts() |>
 
 bs_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
 bs_themes_6 = sample(bs_themes, 6)
-
-
+region_cols = c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX", "FOREST_SECTOR_VULNERABILITY_INDEX")
+region_icons = c("earth-americas", "tower-observation", "money-bills", "scale-balanced", "rainbow", "tree")
+region_formatters = list(label_comma, label_comma, label_dollar, label_dollar, label_comma, label_comma)

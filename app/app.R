@@ -69,10 +69,10 @@ ui <- function(req) {
           div(id = 'Regional Profile',
             h1(textOutput("EDA_h1")),
             uiOutput("regional_profile_row1"),
-            uiOutput("regional_profile_row2"),
+            #uiOutput("regional_profile_row2"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
-              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
-                nav_panel("Map", pickerInput("choose_l1", "Choose Variable to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = F, selected = "POPULATION"), leafletOutput("l1"))
+              navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
+                nav_panel("Map", pickerInput("choose_l1", "Choose Variable to Graph", choices = to_sentence_case(region_cols), multiple = F, selected = "POPULATION"), leafletOutput("l1"))
               ),
               navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
               )
@@ -135,21 +135,24 @@ server <- function(input, output, session) {
   output$EDA_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
 
   # maybe make this prettier in a self-contained function
-  output$regional_profile_row1 = renderUI(
-    layout_column_wrap(width=1/3, fill = F,
-      make_value_box(data_final(), "Population", icon='earth-americas', theme = bs_themes_6[1]),
-      make_value_box(data_final(), "Total Jobs", icon='tower-observation', theme = bs_themes_6[2]),
-      make_value_box(data_final(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills', theme = bs_themes_6[3])
-    )
-  )
+  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final()))
 
-  output$regional_profile_row2 = renderUI(
-    layout_column_wrap(width = 1/3, fill = F, fillable = F,
-      make_value_box(data_final(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced', theme = bs_themes_6[4]),
-      make_value_box(data_final(), "Diversity Index", formatter=scales::label_comma, icon='rainbow', theme = bs_themes_6[5]),
-      make_value_box(data_final(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree', theme = bs_themes_6[6])
-    )
-  )
+
+  # output$regional_profile_row1 = renderUI(
+  #   layout_column_wrap(width=1/3, fill = F,
+  #     make_value_box(data_final(), "Population", icon='earth-americas', theme = bs_themes_6[1]),
+  #     make_value_box(data_final(), "Total Jobs", icon='tower-observation', theme = bs_themes_6[2]),
+  #     make_value_box(data_final(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills', theme = bs_themes_6[3])
+  #   )
+  # )
+  #
+  # output$regional_profile_row2 = renderUI(
+  #   layout_column_wrap(width = 1/3, fill = F, fillable = F,
+  #     make_value_box(data_final(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced', theme = bs_themes_6[4]),
+  #     make_value_box(data_final(), "Diversity Index", formatter=scales::label_comma, icon='rainbow', theme = bs_themes_6[5]),
+  #     make_value_box(data_final(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree', theme = bs_themes_6[6])
+  #   )
+  # )
 
   output$t1 = renderReactable({
     data_final() |>

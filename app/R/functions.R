@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps)
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales)
 
 `%,%` = paste0
 `%,,%` = paste
@@ -104,4 +104,15 @@ clean_regions = function(x) {
     str_replace("-", " ") |>
     str_replace("qathet", "Powell River") |>
     str_squish()
+}
+
+make_regional_profile_boxes = function(df) {
+  div(
+    layout_column_wrap(width=1/3, fill = F,
+      !!!map(1:3, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i]))
+    ),
+    layout_column_wrap(width=1/3, fill = F,
+      !!!map(4:6, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i]))
+    )
+  )
 }
