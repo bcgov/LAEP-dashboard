@@ -63,10 +63,21 @@ tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R
 
 BC_sf = bc_bound()
 RDs_sf = regional_districts() |>
-  mutate(ADMIN_AREA_NAME_CLEANED = clean_regions(ADMIN_AREA_NAME), .before=1)
+  mutate(ADMIN_AREA_NAME_CLEANED = clean_regions(ADMIN_AREA_NAME), .before=1) |>
+  select(ADMIN_AREA_NAME_CLEANED, geometry) |>
+  rename(REGION_NAME = ADMIN_AREA_NAME_CLEANED) |>
+  inner_join(filter(data[[1]], GEO_TYPE == "RD")) |>
+  select(REGION_NAME, geometry, REF_YEAR, POPULATION:last_col()) |>
+  st_as_sf() |>
+  st_transform(crs = 4326)
+
+
+
 
 # Note: "Northern Rockies" & "Skeena Queen Charlotte" are not showing up
 # RDs[!RDs %in% RDs_sf$ADMIN_AREA_NAME_CLEANED]
 
 bs_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
 bs_themes_6 = sample(bs_themes, 6)
+
+

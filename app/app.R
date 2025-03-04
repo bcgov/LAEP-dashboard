@@ -46,6 +46,7 @@ ui <- function(req) {
 
             div(id = "choose_region_div",
               pickerInput("choose_RD", "Choose the RD to profile", choices = RDs, multiple = F),
+              radioGroupButtons("choose_level", "RD or EDA?", choices = c("RD", "EDA"), selected = "EDA"),
               pickerInput("choose_EDA", "Choose the EDA to profile", choices = EDAs, multiple = F),
               pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
             ),
@@ -71,7 +72,7 @@ ui <- function(req) {
             uiOutput("regional_profile_row2"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
               navset_card_tab(full_screen = T, title = "Summary", nav_panel("Table", reactableOutput("t1")), nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
-                nav_panel("Map", leafletOutput("l1"))
+                nav_panel("Map", pickerInput("choose_l1", "Choose Variable to Graph", choices = to_sentence_case(c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX")), multiple = F, selected = "POPULATION"), leafletOutput("l1"))
               ),
               navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
               )
@@ -92,12 +93,25 @@ ui <- function(req) {
 server <- function(input, output, session) {
 
   RD = eventReactive(input$choose_RD, input$choose_RD)
-  EDA = eventReactive(input$choose_EDA, input$choose_EDA)
+  EDA = reactive(if (input$choose_level == "RD") NULL else input$choose_EDA)
 
   observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_EDA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
 
-  EDA_data = eventReactive(EDA(), filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == EDA()))
+  observe(if (input$choose_level == "RD") hide("choose_EDA") else show("choose_EDA"))
+
+  RD_data = eventReactive(RD(), filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == RD()))
+  RD_data_jobs = eventReactive(RD(), {
+    df = data[[2]] |>
+      filter(GEO_TYPE == "RD", REGION_NAME == RD()) |>
+      select(-matches("_TOTAL$")) |>
+      select(REF_YEAR, TOTAL:last_col()) |>
+      mutate(across(everything(), as.integer))
+    t2(df, "REF_YEAR", "Industry")
+  })
+
+  EDA_data = eventReactive(EDA(), if (is.null(EDA())) NULL else filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == EDA()))
   EDA_data_jobs = eventReactive(EDA(), {
+    if (is.null(EDA())) return(NULL)
     df = data[[2]] |>
       filter(GEO_TYPE == "EDA", REGION_NAME == EDA()) |>
       select(-matches("_TOTAL$")) |>
@@ -106,36 +120,39 @@ server <- function(input, output, session) {
     t2(df, "REF_YEAR", "Industry")
   })
 
+  data_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data() else EDA_data())
+  data_jobs_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data_jobs() else EDA_data_jobs())
+
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
-  shift_share_data = eventReactive(EDA_data_jobs(), {
-    df = EDA_data_jobs() |>
+  shift_share_data = eventReactive(data_jobs_final(), {
+    df = data_jobs_final() |>
       select(Industry, !!as.character(shift_share_years()))
     df$change = pull(df[,3]) - pull(df[,2])
     return(df)
   })
 
 
-  output$EDA_h1 = renderText("Economic Profile: " %,% EDA())
+  output$EDA_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
 
   # maybe make this prettier in a self-contained function
   output$regional_profile_row1 = renderUI(
     layout_column_wrap(width=1/3, fill = F,
-      make_value_box(EDA_data(), "Population", icon='earth-americas', theme = bs_themes_6[1]),
-      make_value_box(EDA_data(), "Total Jobs", icon='tower-observation', theme = bs_themes_6[2]),
-      make_value_box(EDA_data(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills', theme = bs_themes_6[3])
+      make_value_box(data_final(), "Population", icon='earth-americas', theme = bs_themes_6[1]),
+      make_value_box(data_final(), "Total Jobs", icon='tower-observation', theme = bs_themes_6[2]),
+      make_value_box(data_final(), "Average Employment Income", formatter=scales::label_dollar, icon='money-bills', theme = bs_themes_6[3])
     )
   )
 
   output$regional_profile_row2 = renderUI(
     layout_column_wrap(width = 1/3, fill = F, fillable = F,
-      make_value_box(EDA_data(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced', theme = bs_themes_6[4]),
-      make_value_box(EDA_data(), "Diversity Index", formatter=scales::label_comma, icon='rainbow', theme = bs_themes_6[5]),
-      make_value_box(EDA_data(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree', theme = bs_themes_6[6])
+      make_value_box(data_final(), "Basic Income Share", formatter=scales::label_percent, icon='scale-balanced', theme = bs_themes_6[4]),
+      make_value_box(data_final(), "Diversity Index", formatter=scales::label_comma, icon='rainbow', theme = bs_themes_6[5]),
+      make_value_box(data_final(), "Forest Sector Vulnerability", col = to_screaming_snake_case("Forest Sector Vulnerability Index"), formatter=scales::label_comma, icon='tree', theme = bs_themes_6[6])
     )
   )
 
   output$t1 = renderReactable({
-    EDA_data() |>
+    data_final() |>
       select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
       mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
       mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
@@ -145,7 +162,7 @@ server <- function(input, output, session) {
 
   output$g1 = renderPlotly({
     if (is.null(input$choose_g1)) return(NULL)
-    p = EDA_data() |>
+    p = data_final() |>
       select(REF_YEAR, to_screaming_snake_case(!!input$choose_g1)) |>
       janitor::clean_names(case='sentence') |>
       pivot_longer(cols = 2:last_col()) |>
@@ -161,14 +178,38 @@ server <- function(input, output, session) {
     ggplotly(p)
   })
 
+
+
   output$l1 = renderLeaflet({
-    m = filter(RDs_sf, str_detect(ADMIN_AREA_NAME, str_squish(str_replace(RD(), "RD", "")))) # kluge
-    #if (nrow(m) != 1) browser()
-    if (nrow(m) != 1) return(NULL)
-    st_transform(m, crs = 4326) |>
+    df = RDs_sf |>
+      filter(REF_YEAR == last_year) |>
+      select(REGION_NAME, geometry, to_screaming_snake_case(!!input$choose_l1)) |>
+      mutate(is_chosen = REGION_NAME == input$choose_RD)
+
+    labels = "<strong>" %,% df$REGION_NAME %,% "</strong><br/>" %,% input$choose_l1 %,% ": " %,% df[[to_screaming_snake_case(input$choose_l1)]] |> lapply(HTML)
+
+    centroid = st_centroid(filter(df, REGION_NAME == input$choose_RD) |> pull(geometry)) |> st_coordinates() |> unique()
+
+    df |>
       leaflet() |>
+      setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
       addTiles() |>
-      addPolygons()
+      addPolygons(
+        fillColor = topo.colors(10, alpha = NULL),
+        stroke = T,
+        weight = ~ifelse(is_chosen, 5, 1),
+        highlightOptions = highlightOptions(
+          weight = 5,
+          color = "#666",
+          fillOpacity = 0.7,
+          bringToFront = TRUE),
+        label = labels,
+        labelOptions = labelOptions(
+          style = list("font-weight" = "normal", padding = "3px 8px"),
+          textsize = "15px",
+          direction = "auto")
+      )
+
   })
 
   output$t2 = renderReactable(
@@ -182,8 +223,8 @@ server <- function(input, output, session) {
   )
 
   output$t3 = renderReactable({
-    EDA_data_jobs() |>
-      mutate(x = EDA_data_jobs()[, ncol(EDA_data_jobs())]) |>
+    data_jobs_final() |>
+      mutate(x = data_jobs_final()[, ncol(data_jobs_final())]) |>
       arrange(desc(x)) |>
       select(-x) |>
       filter(Industry != "Total") |>
