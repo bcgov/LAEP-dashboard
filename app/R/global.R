@@ -94,5 +94,6 @@ tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R
 bs_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
 bs_themes_6 = sample(bs_themes, 6)
 region_cols = c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX", "FOREST_SECTOR_VULNERABILITY_INDEX")
+region_cols_short = c("Pop", "Jobs", "Income", "Avg emp inc", "Diversity idx", "Forest vul idx")
 region_icons = c("earth-americas", "tower-observation", "money-bills", "scale-balanced", "rainbow", "tree")
 region_formatters = list(label_comma, label_comma, label_dollar, label_dollar, label_comma, label_comma)
