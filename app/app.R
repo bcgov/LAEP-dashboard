@@ -21,6 +21,31 @@ ui <- function(req) {
     htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header-links-linkList > div > div > div > div {
   min-width: 280px;}")))),
     htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".bslib-card[data-full-screen='true'] {z-index: 999999999;}")))),
+      tags$head(
+        tags$style(HTML("
+      /* Customizing popover style */
+      .popover {
+        max-width: 500px; /* Maximum width of the popover */
+        word-wrap: break-word; /* Allow long words to break */
+        padding: 15px; /* Padding inside the popover */
+        font-size: 16px; /* Font size */
+        background-color: #f0f0f0; /* Background color */
+        color: #333; /* Text color */
+        border-radius: 10px; /* Rounded corners */
+        z-index: 34782398473894327;
+      }
+
+      .popover-header {
+        background-color: #007bff; /* Header background color */
+        color: white; /* Header text color */
+        font-weight: bold; /* Make the header text bold */
+      }
+
+      .popover-body {
+        background-color: #f8f9fa; /* Popover body background */
+      }
+      "))),
+
 
     fluidRow(
 
@@ -39,7 +64,7 @@ ui <- function(req) {
           window_title = "LAEP",
 
           sidebar = list(
-            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = "Regional Profile", choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
+            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = ifelse(is_local, "Regional Profile", "Home"), choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
               actionsBox = TRUE,
               iconBase = "fas"
             )),
@@ -60,7 +85,7 @@ ui <- function(req) {
 
             br(),
             br(),
-            div(id = "download_div", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
+            div(id = "download_div", actionBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary', icon = icon('file'))),
             div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
           ),
 
@@ -75,10 +100,10 @@ ui <- function(req) {
                 nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
                 nav_panel("Map", leafletOutput("m1"))
               ),
-              navset_card_tab(full_screen = T, title = tooltip_text("Shift/Share Analysis", tooltips$value$shift_share), nav_panel("Table", reactableOutput("t2"))
+              navset_card_tab(full_screen = T, title = span("Shift/Share Analysis", info_icon(tooltips$shift_share)), nav_panel("Table", reactableOutput("t2"))
               )
             ),
-            card("Top 5 Industries by Employment", reactableOutput("t3"))
+            card(span("Top 5 Industries by Employment", info_icon(tooltips$top_employment)), reactableOutput("t3"))
           ),
 
           div(id = 'LAEP Calculator', uiOutput("laep"))
@@ -135,13 +160,12 @@ server <- function(input, output, session) {
 
   output$EDA_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
 
-  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final()))
+  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), region_cols, region_formatters, bs_themes_6, region_icons, region_tooltips))
 
   output$t1 = renderReactable({
-    data_final() |>
-      select(REF_YEAR, POPULATION, TOTAL_JOBS, TOTAL_INCOME, AVERAGE_EMPLOYMENT_INCOME, DIVERSITY_INDEX) |>
-      mutate(across(c(POPULATION, TOTAL_JOBS, DIVERSITY_INDEX), ~scales::label_comma()(.))) |>
-      mutate(across(matches("INCOME"), ~scales::label_dollar()(.))) |>
+    x = data_final() |> select(REF_YEAR, !!!region_cols)
+    for (i in (1:6)) x[,i+1] = region_formatters[[i]]()(pull(x[,i+1]))
+    x |>
       t2("REF_YEAR", "Variable") |>
       reactable()
   })
@@ -172,13 +196,6 @@ server <- function(input, output, session) {
       select(REGION_NAME, geometry, !!!region_cols) |>
       mutate(is_chosen = REGION_NAME == input$choose_RD)
 
-    labels = map(df$REGION_NAME, function(name) {
-      "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(region_cols, function(col) {
-        region_cols_short[match(col, region_cols)] %,% ":" %,,% region_formatters[[match(col, region_cols)]]()(pull(filter(df, REGION_NAME == name), col))
-      }) |>
-        paste(collapse="<br />"))
-    }) |> lapply(HTML)
-
     centroid = st_centroid(filter(df, REGION_NAME == input$choose_RD) |> pull(geometry)) |> st_coordinates() |> unique()
 
     df |>
@@ -194,7 +211,7 @@ server <- function(input, output, session) {
           color = "#666",
           fillOpacity = 0.7,
           bringToFront = TRUE),
-        label = labels,
+        label = m1_labels,
         labelOptions = labelOptions(
           style = list("font-weight" = "normal", padding = "3px 8px"),
           textsize = "15px",
@@ -227,16 +244,16 @@ server <- function(input, output, session) {
 
 
 
+  # output$download_button = downloadHandler(
+  #   filename = function() {
+  #     "LAEP_data_" %,% ymd(Sys.Date()) %,% ".xlsx"
+  #   },
+  #   content = function(con) {
+  #     data = EDA_data()
+  #     write.csv(data, con)
+  #   }
+  # )
 
-  output$download_button = downloadHandler(
-    filename = function() {
-      paste('data-', Sys.Date(), '.csv', sep='')
-    },
-    content = function(con) {
-      data = EDA_data()
-      write.csv(data, con)
-    }
-  )
 
 
 
@@ -250,18 +267,20 @@ server <- function(input, output, session) {
     for (page in setdiff(pages, input$choose_page)) hide(page)
   })
 
-  observeEvent(input$choose_page, if (input$choose_page == "Home") {
-    hide("choose_region_div")
-    hide("download_div")
-    hide("choose_laep_div")
-  } else if (input$choose_page == "Regional Profile") {
-    show("choose_region_div")
-    show("download_div")
-    hide("choose_laep_div")
-  } else if (input$choose_page == "LAEP Calculator") {
-    show("choose_laep_div")
-    hide("choose_region_div")
-    show("download_div")
+  observe({
+    if (input$choose_page == "Home") {
+      hide("choose_region_div")
+      hide("download_div")
+      hide("choose_laep_div")
+    } else if (input$choose_page == "Regional Profile") {
+      show("choose_region_div")
+      show("download_div")
+      hide("choose_laep_div")
+    } else if (input$choose_page == "LAEP Calculator") {
+      show("choose_laep_div")
+      hide("choose_region_div")
+      if (num_laeps() > 0) show("download_div")
+    }
   })
 
   observe(walk(1:num_laeps(), function(i) output[['laep_t' %,% i]] = renderReactable({
@@ -287,6 +306,21 @@ server <- function(input, output, session) {
     }
   })
 
+  observeEvent(input$download_button, {
+    wb = wb_workbook()
+    if (input$choose_page == "Regional Profile") {
+      wb$add_worksheet("Regional Profile")
+      wb$add_data(sheet = "Regional Profile", x = data_final())
+    } else if (input$choose_page == "LAEP Calculator") {
+      if (num_laeps() == 0) return(NULL)
+      walk(1:num_laeps(), function(i) {
+        wb$add_worksheet("LAEP Scenario " %,% i)
+        wb$add_data(sheet = "LAEP Scenario " %,% i, x = data.frame(i))
+      })
+    }
+    wb$open()
+
+  })
 
 
 

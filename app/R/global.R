@@ -83,17 +83,20 @@ home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page
 tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')$value
 
 
-
-
-
-
-
 # Note: "Northern Rockies" & "Skeena Queen Charlotte" are not showing up
 # RDs[!RDs %in% RDs_sf$ADMIN_AREA_NAME_CLEANED]
 
-bs_themes = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark")
-bs_themes_6 = sample(bs_themes, 6)
+bs_themes_6 = c("primary", "secondary", "success", "info", "warning", "danger", "light", "dark") |> sample(6)
 region_cols = c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX", "FOREST_SECTOR_VULNERABILITY_INDEX")
 region_cols_short = c("Pop", "Jobs", "Income", "Avg emp inc", "Diversity idx", "Forest vul idx")
 region_icons = c("earth-americas", "tower-observation", "money-bills", "scale-balanced", "rainbow", "tree")
 region_formatters = list(label_comma, label_comma, label_dollar, label_dollar, label_comma, label_comma)
+region_tooltips = tooltips[which(names(tooltips) %in% region_cols)]
+
+m1_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), function(name) {
+  "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(region_cols, function(col) {
+    region_cols_short[match(col, region_cols)] %,% ":" %,,% region_formatters[[match(col, region_cols)]]()(pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
+  }) |>
+      paste(collapse="<br />"))
+}) |> lapply(HTML)
+

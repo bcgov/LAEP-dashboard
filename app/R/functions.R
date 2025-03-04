@@ -14,25 +14,13 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales)
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales, openxlsx2)
 
 `%,%` = paste0
 `%,,%` = paste
 pa = function(x) print(x, n=Inf)
 
-tooltip_text = function(text="text", tooltip_text = "This is a tooltip yo", icon_name = "info-circle", icon_style = 'color: red;') span(text, tippy::tippy(icon(icon_name, style=icon_style), tooltip_text))
-
-make_value_box = function(df, title = 'Population', col = NULL, formatter = scales::label_comma, theme=NULL, icon='map') {
-  if (is.null(theme)) theme = sample(bs_themes, 1)
-  if (is.null(col)) col = snakecase::to_screaming_snake_case(title)
-  bslib::value_box(
-    title = title,
-    value = formatter()(filter(df, REF_YEAR == last_year) |> pull(!!col)),
-    showcase = icon(icon),
-    theme = theme,
-    p("B.C. Total: " %,% formatter()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col))),
-  )
-}
+info_icon = function(tooltip) popover(icon("info-circle", style="color: red"), tooltip)
 
 t2 = function(df, pivot_col, new_col_name) {
   na = setdiff(names(df), pivot_col)
@@ -106,13 +94,27 @@ clean_regions = function(x) {
     str_squish()
 }
 
-make_regional_profile_boxes = function(df) {
+make_regional_profile_boxes = function(df = filter(data[[1]], REF_YEAR == "2020", REGION_NAME == "East Kootenay"), cols, formatters, themes, icons, tooltips) {
   div(
     layout_column_wrap(width=1/3, fill = F,
-      !!!map(1:3, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i]))
+      !!!map(1:3, function(i) make_value_box(df, to_sentence_case(cols[i]), cols[i], formatters[[i]], themes[i], icons[i], tooltips[i]))
     ),
     layout_column_wrap(width=1/3, fill = F,
-      !!!map(4:6, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i]))
+      !!!map(4:6, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i], region_tooltips[i]))
     )
   )
 }
+
+make_value_box = function(df = filter(data[[1]], REF_YEAR == "2020", REGION_NAME == "East Kootenay"), title = 'Population', col = NULL, formatter = scales::label_comma, theme=NULL, icon='map', tooltip = NULL) {
+  if (is.null(tooltip[[1]])) tooltip = NULL
+  if (is.null(theme)) theme = sample(bs_themes, 1)
+  if (is.null(col)) col = snakecase::to_screaming_snake_case(title)
+  bslib::value_box(
+    title = if (is.null(tooltip)) title else span(title, info_icon(tooltip)),
+    value = formatter()(filter(df, REF_YEAR == last_year) |> pull(!!col)),
+    showcase = icon(icon),
+    theme = theme,
+    p("B.C. Total: " %,% formatter()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col))),
+  )
+}
+
