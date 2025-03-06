@@ -97,7 +97,7 @@ ui <- function(req) {
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
               navset_card_tab(full_screen = T, title = "Summary",
                 nav_panel("Table", reactableOutput("t1")),
-                nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), plotlyOutput("g1")),
+                nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), girafeOutput("g1")),
                 nav_panel("Map", leafletOutput("m1"))
               ),
               navset_card_tab(full_screen = T, title = span("Shift/Share Analysis", info_icon(tooltips$shift_share)), nav_panel("Table", reactableOutput("t2"))
@@ -170,22 +170,31 @@ server <- function(input, output, session) {
       reactable()
   })
 
-  output$g1 = renderPlotly({
+  output$g1 = renderGirafe({
     if (is.null(input$choose_g1)) return(NULL)
-    p = data_final() |>
-      select(REF_YEAR, to_screaming_snake_case(!!input$choose_g1)) |>
-      janitor::clean_names(case='sentence') |>
-      pivot_longer(cols = 2:last_col()) |>
-      mutate(year = as.factor(`Ref year`)) |>
-      ggplot(aes(y=value, x=year, fill=year)) +
-      geom_col(position = 'dodge') +
-      facet_wrap(~name, scales='free_y') +
-      ggthemes::theme_clean() +
-      theme(legend.position = 'bottom') +
-      scale_fill_viridis_d() +
-      labs(x=NULL, y=NULL, fill=NULL) +
-      guides(fill='none')
-    ggplotly(p)
+
+    cols = to_screaming_snake_case(input$choose_g1)
+    labellers = region_formatters[match(cols, region_cols)]
+
+    x = map2(cols, labellers, function(var, labeller) {
+      data_final() |>
+        select(REF_YEAR, !!var) |>
+        janitor::clean_names(case='sentence') |>
+        pivot_longer(cols = 2:last_col()) |>
+        mutate(year = as.factor(`Ref year`)) |>
+        ggplot(aes(y=value, x=year, fill=year)) +
+        geom_col_interactive(aes(tooltip = year %,% ":" %,,% labeller()(value), data_id = year), position = 'dodge', hover_nearest = T) +
+        ggthemes::theme_clean() +
+        theme(legend.position = 'bottom') +
+        scale_fill_viridis_d() +
+        labs(x=NULL, y=NULL, fill=NULL) +
+        guides(fill='none') +
+        scale_y_continuous(labels = labeller()) +
+        facet_wrap(~name)
+    })
+
+    girafe(code = print(reduce(x, `+`) + plot_layout(ncol = 2, byrow = FALSE)))
+
   })
 
 
