@@ -1,98 +1,33 @@
 is_local = Sys.getenv('SHINY_PORT') == ""
-source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"))
-source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"))
+source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"), local = T)
+source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local = T)
+source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/Jeff.R"), local = T)
 
 
 ui <- function(req) {
   shiny::fluidPage(
-    theme = "styles.css",
     HTML("<html lang='en'>"),
-    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".recalculating {
-    opacity: 1 !important;
-    transition: none !important;
-    color: tomato;
-    /* background-color: tomato; */
-  }")))),
-    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header-links-linkList > div > div > div > div {
-  min-width: 280px;}")))),
-    htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".bslib-card[data-full-screen='true'] {z-index: 999999999;}")))),
-      tags$head(
-        tags$style(HTML("
-      /* Customizing popover style */
-      .popover {
-        max-width: 500px; /* Maximum width of the popover */
-        word-wrap: break-word; /* Allow long words to break */
-        padding: 15px; /* Padding inside the popover */
-        font-size: 16px; /* Font size */
-        background-color: #f0f0f0; /* Background color */
-        color: #333; /* Text color */
-        border-radius: 10px; /* Rounded corners */
-        z-index: 34782398473894327;
-      }
-
-      .popover-header {
-        background-color: #007bff; /* Header background color */
-        color: white; /* Header text color */
-        font-weight: bold; /* Make the header text bold */
-      }
-
-      .popover-body {
-        background-color: #f8f9fa; /* Popover body background */
-      }
-
-      .btn-choose_page {
-        min-width: 200px;
-        display: flex;
-        justify-content: left;
-      }
-
-       #choose_page {
-         border: 1px dotted black;
-         border-radius: 10px; /* Rounded corners */
-       }
-      "))),
-
-
+    tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
     fluidRow(
-
-
-      ## Replace appname with the title that will appear in the header
-      #bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP", github = "Replace with github URL or NULL"),
-      bcsHeader(id = 'header', appname = "LAEP", github = "Replace with github URL or NULL"),
-
+      bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP Dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
       tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")), ## to add BCGov favicon
-
-      column(width = 12,
-        style = "margin-top:100px",
-
+      column(width = 12, style = "margin-top:100px",
         page_sidebar(
           useShinyjs(),
-          window_title = "LAEP",
+          window_title = "LAEP Dashboard",
 
           sidebar = list(
-            # pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = ifelse(is_local, "Regional Profile", "Home"), choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
-            #   actionsBox = TRUE,
-            #   iconBase = "fas"
-            # )),
 
             radioGroupButtons(
               inputId = "choose_page",
               label = "Choose Your Page",
-              # choiceNames = tagList(span(icon("home"), pages[1])),
-              # choiceValues = pages[1],
-              choiceNames = lapply(1:length(pages), function(i) span(icon(pages_icons[i]), pages[i])),
-              choiceValues = pages,
+              choiceNames = pages$choice,
+              choiceValues = pages$name,
               individual = TRUE,
               justified = T,
-              # checkIcon = list(
-              #   yes = tags$i(class = "fa fa-circle",
-              #     style = "color: steelblue; margin-right: 0px;"),
-              #   no = tags$i(class = "fa fa-circle-o",
-              #     style = "color: steelblue; margin-right: 0px;")),
               direction = "vertical",
-              status = "choose_page"
-
-
+              status = "choose_page",
+              selected = if (is_local) start_page[1] else start_page[2]
             ),
 
             div(id = "choose_region_div",
@@ -104,36 +39,33 @@ ui <- function(req) {
 
             div(id = "choose_laep_div",
               actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
-              br(),
-              #br(),
-              #actionBttn("reset_laep", "Reset this Page", color = 'danger')
             ),
 
             br(),
             br(),
+
             div(id = "download_div", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
-            div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
-          ),
+            div(style = "text-align:left; color:#b8c7ce; font-size: .8em;", "Last updated:" %,,% last_updated)
+          ), ## end sidebar
 
           div(id = 'Home', home_page),
 
           div(id = 'Regional Profile',
-            h1(textOutput("EDA_h1")),
+            h1(textOutput("regional_profile_h1")),
             uiOutput("regional_profile_row1"),
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
               navset_card_tab(full_screen = T, title = "Summary",
-                nav_panel("Table", reactableOutput("t1")),
-                nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), withSpinner(girafeOutput("g1"))),
-                nav_panel("Map", withSpinner(leafletOutput("m1")))
+                nav_panel("Table", reactableOutput("summary_table")),
+                nav_panel("Graph", pickerInput("choose_summary_graph", "Choose Variables to Graph", choices = to_sentence_case(regional_profile_info$col), multiple = T, selected = "POPULATION"), withSpinner(girafeOutput("summary_graph"))),
+                nav_panel("Map", withSpinner(leafletOutput("summary_map")))
               ),
-              navset_card_tab(full_screen = T, title = span("Shift/Share Analysis", info_icon(tooltips$shift_share)), nav_panel("Table", reactableOutput("t2"))
+              navset_card_tab(full_screen = T, title = span("Shift/Share Analysis", info_icon(tooltips$shift_share)), nav_panel("Table", reactableOutput("shift_share_table"))
               )
             ),
-            card(span("Top 5 Industries by Employment", info_icon(tooltips$top_employment)), reactableOutput("t3"))
+            card(span("Top 5 Industries by Employment", info_icon(tooltips$top_employment)), reactableOutput("industry_table"))
           ),
 
           div(id = 'LAEP Calculator', uiOutput("laep"))
-
         )
       ),
 
@@ -142,15 +74,21 @@ ui <- function(req) {
   )
 }
 
+
+
+
 server <- function(input, output, session) {
 
+  # REACTIVES
+
+  # the number of LAEP scenarios (starts off with none)
+  num_laeps = reactiveVal(0)
+
+  # reactives for RD and EDA choices
   RD = eventReactive(input$choose_RD, input$choose_RD)
   EDA = reactive(if (input$choose_level == "RD") NULL else input$choose_EDA)
 
-  observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_EDA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
-
-  observe(if (input$choose_level == "RD") hide("choose_EDA") else show("choose_EDA"))
-
+  # reactives for the data[[1]] and data[[2]] at the RD and EDA levels
   RD_data = eventReactive(RD(), filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == RD()))
   RD_data_jobs = eventReactive(RD(), {
     df = data[[2]] |>
@@ -160,7 +98,6 @@ server <- function(input, output, session) {
       mutate(across(everything(), as.integer))
     t2(df, "REF_YEAR", "Industry")
   })
-
   EDA_data = eventReactive(EDA(), if (is.null(EDA())) NULL else filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == EDA()))
   EDA_data_jobs = eventReactive(EDA(), {
     if (is.null(EDA())) return(NULL)
@@ -172,115 +109,48 @@ server <- function(input, output, session) {
     t2(df, "REF_YEAR", "Industry")
   })
 
+  # pick the correct data frames above (RD or EDA level)
   data_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data() else EDA_data())
   data_jobs_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data_jobs() else EDA_data_jobs())
 
+  # A text representation of the choices in the 'shift share'
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
-  shift_share_data = eventReactive(data_jobs_final(), {
-    df = data_jobs_final() |>
-      select(Industry, !!as.character(shift_share_years()))
-    df$change = pull(df[,3]) - pull(df[,2])
-    return(df)
-  })
 
-
-  output$EDA_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
-
-  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), region_cols, region_formatters, bs_themes_6, region_icons, region_tooltips))
-
-  output$t1 = renderReactable({
-    x = data_final() |> select(REF_YEAR, !!!region_cols)
-    for (i in (1:6)) x[,i+1] = region_formatters[[i]]()(pull(x[,i+1]))
-    x |>
-      t2("REF_YEAR", "Variable") |>
-      reactable()
-  })
-
-  output$g1 = renderGirafe({
-    if (is.null(input$choose_g1)) return(NULL)
-
-    cols = to_screaming_snake_case(input$choose_g1)
-    labellers = region_formatters[match(cols, region_cols)]
-
-    x = map2(cols, labellers, function(var, labeller) {
-      data_final() |>
-        select(REF_YEAR, !!var) |>
-        janitor::clean_names(case='sentence') |>
-        pivot_longer(cols = 2:last_col()) |>
-        mutate(year = as.factor(`Ref year`)) |>
-        ggplot(aes(y=value, x=year, fill=year)) +
-        geom_col_interactive(aes(tooltip = year %,% ":" %,,% labeller()(value), data_id = year), position = 'dodge', hover_nearest = T) +
-        ggthemes::theme_clean() +
-        theme(legend.position = 'bottom') +
-        scale_fill_viridis_d() +
-        labs(x=NULL, y=NULL, fill=NULL) +
-        guides(fill='none') +
-        scale_y_continuous(labels = labeller()) +
-        facet_wrap(~name)
+  # A list of all the LAEP scenarios
+  laep_outputs = reactive({
+    map(1:num_laeps(), function(i) {
+      req(input[['laep_year_' %,% i]])
+      make_laep_scenario_table_output(year = input[['laep_year_' %,% i]], region = input[['laep_area_' %,% i]], industry = input[['laep_industry_' %,% i]], social_safety = input[['laep_social_safety_' %,% i]])
     })
+  })
 
+
+  # OUTPUTS
+
+  # Regional Profile Page outputs
+
+  output$regional_profile_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
+
+  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), regional_profile_info, tooltips))
+
+  output$summary_table = renderReactable(reactable(make_summary_table_output(data_final())))
+
+  output$summary_graph = renderGirafe({
+    req(input$choose_summary_graph)
+    x = make_summary_graph_output(data_final(), cols = input$choose_summary_graph)
     girafe(code = print(reduce(x, `+`) + plot_layout(ncol = 2, byrow = FALSE)))
-
   })
 
+  output$summary_map = renderLeaflet(make_summary_map_output(region = input$choose_RD))
 
+  output$shift_share_table = renderReactable(make_shift_share_table_output(data_jobs_final(), shift_share_years()) |> reactable(groupBy = 'group'))
 
-  output$m1 = renderLeaflet({
-    df = RDs_sf |>
-      filter(REF_YEAR == last_year) |>
-      select(REGION_NAME, geometry, !!!region_cols) |>
-      mutate(is_chosen = REGION_NAME == input$choose_RD)
+  output$industry_table = renderReactable(reactable(make_industry_table(data_jobs_final())))
 
-    centroid = st_centroid(filter(df, REGION_NAME == input$choose_RD) |> pull(geometry)) |> st_coordinates() |> unique()
+  # LAEP Calculator Page outputs
+  observe(walk(1:num_laeps(), function(i) output[['laep_table_' %,% i]] = renderReactable(reactable(laep_outputs()[[i]], defaultPageSize = 5))))
 
-    df |>
-      leaflet() |>
-      setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
-      addTiles() |>
-      addPolygons(
-        fillColor = topo.colors(10, alpha = NULL),
-        stroke = T,
-        weight = ~ifelse(is_chosen, 5, 1),
-        highlightOptions = highlightOptions(
-          weight = 5,
-          color = "#666",
-          fillOpacity = 0.7,
-          bringToFront = TRUE),
-        label = m1_labels,
-        labelOptions = labelOptions(
-          style = list("font-weight" = "normal", padding = "3px 8px"),
-          textsize = "15px",
-          direction = "auto")
-      )
-
-  })
-
-  output$t2 = renderReactable(
-    bind_rows(
-      filter(shift_share_data(), Industry == "Total") |> mutate(group = "Total"),
-      filter(shift_share_data(), Industry != "Total") |> arrange(names(shift_share_data())[3]) |> head(5) |> mutate(group = "Best"),
-      filter(shift_share_data(), Industry != "Total") |> arrange(names(shift_share_data())[3]) |> tail(5) |> mutate(group = "Worst")
-    ) |>
-      relocate(group, .before=1) |>
-      reactable(groupBy = 'group')
-  )
-
-  output$t3 = renderReactable({
-    data_jobs_final() |>
-      mutate(x = data_jobs_final()[, ncol(data_jobs_final())]) |>
-      arrange(desc(x)) |>
-      select(-x) |>
-      filter(Industry != "Total") |>
-      head(5) |>
-      reactable()
-  })
-
-
-
-
-
-
-
+  # download handler output
   output$download_button = downloadHandler(
     filename = function() {
       "LAEP_data_" %,% ymd(Sys.Date()) %,% ".xlsx"
@@ -304,14 +174,32 @@ server <- function(input, output, session) {
 
 
 
+  # OBSERVABLES
+
+  # add a LAEP scenario
+  observeEvent(input$add_laep_scenario, {
+    num_laeps(num_laeps() + 1)
+    insertUI("#laep", "beforeEnd", div(laep_scenario_card(num_laeps())), immediate = T)
+  })
+
+  # delete a LAEP scenario
+  observe({
+    req(num_laeps())
+    for (i in 1:num_laeps()) {
+      observeEvent(input[["delete_laep_" %,% i]], {
+        removeUI("#laep_card_" %,% i, immediate = T)
+      })
+    }
+  })
 
 
-  bcsapps::bcsHeaderServer(id = 'header', links = T)
-  bcsapps::bcsFooterServer(id = 'footer')
+  observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_EDA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
+
+  observe(if (input$choose_level == "RD") hide("choose_EDA") else show("choose_EDA"))
 
   observeEvent(input$choose_page, {
-    show(input$choose_page)
-    for (page in setdiff(pages, input$choose_page)) hide(page)
+    shinyjs::show(input$choose_page)
+    for (page in setdiff(pages$name, input$choose_page)) shinyjs::hide(page)
   })
 
   observe({
@@ -330,35 +218,8 @@ server <- function(input, output, session) {
     }
   })
 
-  laep_outputs = reactive({
-    map(1:num_laeps(), function(i) {
-      req(input[['laep_year_' %,% i]])
-      #browser()
-      data[[2]] |>
-        filter(REF_YEAR == input[['laep_year_' %,% i]]) |>
-        filter(REGION_NAME == input[['laep_area_' %,% i]]) |>
-        select(to_screaming_snake_case(!!input[['laep_industry_' %,% i]]))
-    })
-  })
-
-  observe(walk(1:num_laeps(), function(i) output[['laep_t' %,% i]] = renderReactable(reactable(laep_outputs()[[i]], defaultPageSize = 5))))
-
-
-  num_laeps = reactiveVal(0)
-  observeEvent(input$add_laep_scenario, {
-    num_laeps(num_laeps() + 1)
-    insertUI("#laep", "beforeEnd", div(laep_scenario_card(num_laeps())), immediate = T)
-  })
-  observe({
-    req(num_laeps())
-    for (i in 1:num_laeps()) {
-      observeEvent(input[["delete_laep_" %,% i]], {
-        removeUI("#laep_" %,% i, immediate = T)
-      })
-    }
-  })
-
-
+  bcsapps::bcsHeaderServer(id = 'header', links = T)
+  bcsapps::bcsFooterServer(id = 'footer')
 }
 
 shinyApp(ui, server)

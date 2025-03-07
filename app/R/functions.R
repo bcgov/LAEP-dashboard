@@ -1,4 +1,3 @@
-
 # Copyright 2023 Province of British Columbia
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +15,15 @@
 
 pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork, shinycssloaders)
 
+# some convenience functions
 `%,%` = paste0
 `%,,%` = paste
 pa = function(x) print(x, n=Inf)
 
+# make the little red 'i' thingies for popover information
 info_icon = function(tooltip) popover(icon("info-circle", style="color: red"), tooltip)
 
+# this is probably not well-written but it works: it's a function to transpose a data frame, intended for those output tables that have years as column names. `pivot_col` is typically going to be REF_YEAR; it's the column that will become the col names of the df. `new_col_name` is the name of first column of the resultant df, something like "Industry"
 t2 = function(df, pivot_col, new_col_name) {
   na = setdiff(names(df), pivot_col)
   pi = pull(df[pivot_col])
@@ -35,53 +37,7 @@ t2 = function(df, pivot_col, new_col_name) {
   return(df)
 }
 
-laep_scenario_card = function(i) {
-  card(
-    id = "laep_" %,% i,
-    full_screen = T,
-    card_title("Scenario #" %,% i),
-    layout_column_wrap(width=1/4, fill = F,
-      pickerInput("laep_year_" %,% i, label = "Select Reference Year", choices = years),
-      pickerInput("laep_area_" %,% i, label = "Select Region", choices = RDs),
-      pickerInput("laep_industry_" %,% i, label = "Select Industry", choices = industries),
-      pickerInput("laep_SSN_" %,% i, label = "Social Safety Net?", choices = c("Yes", "No"))
-    ),
-    #reactableOutput("laep_t" %,% i),
-    reactableOutput("laep_t" %,% i),
-    #layout_column_wrap(width=1/2, fill = F,
-      #actionBttn("add_laep" %,% i, "Add a Scenario"),
-      div(style = 'max-width: 300px;', actionBttn("delete_laep_" %,% i, "Delete this Scenario", color = 'danger'))
-    #)
-  )
-}
-
-bcsHeader = function (id, appname, github = NULL)
-{
-  ns <- shiny::NS(id)
-  htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed; z-index:10000;\"}"))),
-  #htmltools::tagList(htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#header_col {background-color:#003366; border-bottom:2px solid #fcba19; position:fixed;\"}"))),
-
-    htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".header {padding:0 0px 0 0px; display:flex; height:80px; width:100%;}"))),
-    htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".banner {width:100%; display:flex; justify-content:flex-start; align-items:center; margin: 0 10px 0 10px}"))),
-    htmltools::tags$head(htmltools::tags$style(htmltools::HTML("#app_title {font-weight:400; color:white; margin: 5px 5px 0 18px;}"))),
-
-    #htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".link_list_div {margin-left:auto; margin-right:0;}"))),
-    htmltools::tags$head(htmltools::tags$style(htmltools::HTML(".link_list_div {margin-left:auto; margin-right:50px;}"))),
-
-
-
-    shiny::column(id = "header_col", width = 12, htmltools::tags$header(class = "header",
-      htmltools::tags$div(class = "banner", htmltools::a(href = "https://www2.gov.bc.ca/gov/content/data/about-data-management/bc-stats",
-        htmltools::img(src = "bcstats_logo_rev.png",
-          title = "BC Stats", height = "80px", alt = "British Columbia - BC Stats"),
-        onclick = "gtag"), shiny::h1(id = "app_title",
-          appname), htmltools::tags$div(class = "link_list_div",
-            shiny::uiOutput(ns("links_yn"))), if (!is.null(github))
-              htmltools::tags$a(href = github, shiny::icon("github",
-                "fa-lg"), style = "color:white")))))
-}
-
-
+# So data plays nicely with bcmaps
 clean_regions = function(x) {
   x |>
     str_replace("Regional District( of)?", "") |>
@@ -94,27 +50,26 @@ clean_regions = function(x) {
     str_squish()
 }
 
-make_regional_profile_boxes = function(df = filter(data[[1]], REF_YEAR == "2020", REGION_NAME == "East Kootenay"), cols, formatters, themes, icons, tooltips) {
+
+# Returns an individual bslib 'value box' for the first row of the Regional Profile page
+make_value_box = function(df, title, col, labeller, theme, icon, tooltip = NULL) {
+  bslib::value_box(
+    title = if (is.null(tooltip)) title else span(title, info_icon(tooltip)),
+    value = labeller()(filter(df, REF_YEAR == last_year) |> pull(!!col)),
+    showcase = icon(icon),
+    theme = theme,
+    p("B.C. Total: " %,% labeller()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
+  )
+}
+
+# Returns the 2x3 grid of value boxes
+make_regional_profile_boxes = function(df, df_info, tooltips) {
   div(
     layout_column_wrap(width=1/3, fill = F,
-      !!!map(1:3, function(i) make_value_box(df, to_sentence_case(cols[i]), cols[i], formatters[[i]], themes[i], icons[i], tooltips[i]))
+      !!!map(1:3, function(i) make_value_box(df, title = to_sentence_case(df_info$col[i]), col = df_info$col[i], labeller = df_info$label[[i]], theme = df_info$theme[i], icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
     ),
     layout_column_wrap(width=1/3, fill = F,
-      !!!map(4:6, function(i) make_value_box(df, to_sentence_case(region_cols[i]), region_cols[i], region_formatters[[i]], bs_themes_6[i], region_icons[i], region_tooltips[i]))
+      !!!map(4:6, function(i) make_value_box(df, title = to_sentence_case(df_info$col[i]), col = df_info$col[i], labeller =  df_info$label[[i]], theme = df_info$theme[i], icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
     )
   )
 }
-
-make_value_box = function(df = filter(data[[1]], REF_YEAR == "2020", REGION_NAME == "East Kootenay"), title = 'Population', col = NULL, formatter = scales::label_comma, theme=NULL, icon='map', tooltip = NULL) {
-  if (is.null(tooltip[[1]])) tooltip = NULL
-  if (is.null(theme)) theme = sample(bs_themes, 1)
-  if (is.null(col)) col = snakecase::to_screaming_snake_case(title)
-  bslib::value_box(
-    title = if (is.null(tooltip)) title else span(title, info_icon(tooltip)),
-    value = formatter()(filter(df, REF_YEAR == last_year) |> pull(!!col)),
-    showcase = icon(icon),
-    theme = theme,
-    p("B.C. Total: " %,% formatter()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col))),
-  )
-}
-
