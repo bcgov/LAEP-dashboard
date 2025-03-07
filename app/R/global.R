@@ -100,3 +100,6 @@ m1_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), func
       paste(collapse="<br />"))
 }) |> lapply(HTML)
 
+last_updated = format(now(), "%b %d, %Y")
+pages = c("Home", "Regional Profile", "LAEP Calculator")
+pages_icons = c("home", "line-chart", "calculator")

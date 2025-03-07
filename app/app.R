@@ -3,11 +3,6 @@ source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"))
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"))
 
 
-# constants
-last_updated = format(now(), "%b %d, %Y")
-pages = c("Home", "Regional Profile", "LAEP Calculator")
-
-
 ui <- function(req) {
   shiny::fluidPage(
     theme = "styles.css",
@@ -44,6 +39,17 @@ ui <- function(req) {
       .popover-body {
         background-color: #f8f9fa; /* Popover body background */
       }
+
+      .btn-choose_page {
+        min-width: 200px;
+        display: flex;
+        justify-content: left;
+      }
+
+       #choose_page {
+         border: 1px dotted black;
+         border-radius: 10px; /* Rounded corners */
+       }
       "))),
 
 
@@ -64,10 +70,30 @@ ui <- function(req) {
           window_title = "LAEP",
 
           sidebar = list(
-            pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = ifelse(is_local, "Regional Profile", "Home"), choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
-              actionsBox = TRUE,
-              iconBase = "fas"
-            )),
+            # pickerInput("choose_page", label = "Choose Your Page", width='100%', inline = T, choices = pages, selected = ifelse(is_local, "Regional Profile", "Home"), choicesOpt = list(icon = c("fa-home", "fa-line-chart", "fa-calculator")), options = pickerOptions(
+            #   actionsBox = TRUE,
+            #   iconBase = "fas"
+            # )),
+
+            radioGroupButtons(
+              inputId = "choose_page",
+              label = "Choose Your Page",
+              # choiceNames = tagList(span(icon("home"), pages[1])),
+              # choiceValues = pages[1],
+              choiceNames = lapply(1:length(pages), function(i) span(icon(pages_icons[i]), pages[i])),
+              choiceValues = pages,
+              individual = TRUE,
+              justified = T,
+              # checkIcon = list(
+              #   yes = tags$i(class = "fa fa-circle",
+              #     style = "color: steelblue; margin-right: 0px;"),
+              #   no = tags$i(class = "fa fa-circle-o",
+              #     style = "color: steelblue; margin-right: 0px;")),
+              direction = "vertical",
+              status = "choose_page"
+
+
+            ),
 
             div(id = "choose_region_div",
               pickerInput("choose_RD", "Choose the RD to profile", choices = RDs, multiple = F),
@@ -85,7 +111,7 @@ ui <- function(req) {
 
             br(),
             br(),
-            div(id = "download_div", actionBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary', icon = icon('file'))),
+            div(id = "download_div", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
             div(style = "text-align:center;color:#b8c7ce", uiOutput("update_date"))
           ),
 
@@ -97,8 +123,8 @@ ui <- function(req) {
             layout_column_wrap(width = 1/2, fill = F, fillable = T,
               navset_card_tab(full_screen = T, title = "Summary",
                 nav_panel("Table", reactableOutput("t1")),
-                nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), girafeOutput("g1")),
-                nav_panel("Map", leafletOutput("m1"))
+                nav_panel("Graph", pickerInput("choose_g1", "Choose Variables to Graph", choices = to_sentence_case(region_cols), multiple = T, selected = "POPULATION"), withSpinner(girafeOutput("g1"))),
+                nav_panel("Map", withSpinner(leafletOutput("m1")))
               ),
               navset_card_tab(full_screen = T, title = span("Shift/Share Analysis", info_icon(tooltips$shift_share)), nav_panel("Table", reactableOutput("t2"))
               )
@@ -253,15 +279,27 @@ server <- function(input, output, session) {
 
 
 
-  # output$download_button = downloadHandler(
-  #   filename = function() {
-  #     "LAEP_data_" %,% ymd(Sys.Date()) %,% ".xlsx"
-  #   },
-  #   content = function(con) {
-  #     data = EDA_data()
-  #     write.csv(data, con)
-  #   }
-  # )
+
+
+  output$download_button = downloadHandler(
+    filename = function() {
+      "LAEP_data_" %,% ymd(Sys.Date()) %,% ".xlsx"
+    },
+    content = function(con) {
+      wb = wb_workbook()
+      if (input$choose_page == "Regional Profile") {
+        wb$add_worksheet("Regional Profile")
+        wb$add_data(sheet = "Regional Profile", x = data_final())
+      } else if (input$choose_page == "LAEP Calculator") {
+        if (num_laeps() == 0) return(NULL)
+        walk(1:num_laeps(), function(i) {
+          wb$add_worksheet("LAEP Scenario " %,% i)
+          wb$add_data(sheet = "LAEP Scenario " %,% i, x = laep_outputs()[[i]])
+        })
+      }
+      wb$save(con)
+    }
+  )
 
 
 
@@ -278,27 +316,32 @@ server <- function(input, output, session) {
 
   observe({
     if (input$choose_page == "Home") {
-      hide("choose_region_div")
-      hide("download_div")
-      hide("choose_laep_div")
+      shinyjs::hide("choose_region_div")
+      shinyjs::hide("download_div")
+      shinyjs::hide("choose_laep_div")
     } else if (input$choose_page == "Regional Profile") {
-      show("choose_region_div")
-      show("download_div")
-      hide("choose_laep_div")
+      shinyjs::show("choose_region_div")
+      shinyjs::show("download_div")
+      shinyjs::hide("choose_laep_div")
     } else if (input$choose_page == "LAEP Calculator") {
-      show("choose_laep_div")
-      hide("choose_region_div")
-      if (num_laeps() > 0) show("download_div")
+      shinyjs::show("choose_laep_div")
+      shinyjs::hide("choose_region_div")
+      if (num_laeps() > 0) shinyjs::show("download_div")
     }
   })
 
-  observe(walk(1:num_laeps(), function(i) output[['laep_t' %,% i]] = renderReactable({
-    data[[2]] |>
-      filter(REF_YEAR == input[['laep_year_' %,% i]]) |>
-      filter(REGION_NAME == input[['laep_area_' %,% i]]) |>
-      select(to_screaming_snake_case(!!input[['laep_industry_' %,% i]])) |>
-      reactable(defaultPageSize = 5)
-  })))
+  laep_outputs = reactive({
+    map(1:num_laeps(), function(i) {
+      req(input[['laep_year_' %,% i]])
+      #browser()
+      data[[2]] |>
+        filter(REF_YEAR == input[['laep_year_' %,% i]]) |>
+        filter(REGION_NAME == input[['laep_area_' %,% i]]) |>
+        select(to_screaming_snake_case(!!input[['laep_industry_' %,% i]]))
+    })
+  })
+
+  observe(walk(1:num_laeps(), function(i) output[['laep_t' %,% i]] = renderReactable(reactable(laep_outputs()[[i]], defaultPageSize = 5))))
 
 
   num_laeps = reactiveVal(0)
@@ -314,23 +357,6 @@ server <- function(input, output, session) {
       })
     }
   })
-
-  observeEvent(input$download_button, {
-    wb = wb_workbook()
-    if (input$choose_page == "Regional Profile") {
-      wb$add_worksheet("Regional Profile")
-      wb$add_data(sheet = "Regional Profile", x = data_final())
-    } else if (input$choose_page == "LAEP Calculator") {
-      if (num_laeps() == 0) return(NULL)
-      walk(1:num_laeps(), function(i) {
-        wb$add_worksheet("LAEP Scenario " %,% i)
-        wb$add_data(sheet = "LAEP Scenario " %,% i, x = data.frame(i))
-      })
-    }
-    wb$open()
-
-  })
-
 
 
 }

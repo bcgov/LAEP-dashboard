@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork)
+pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork, shinycssloaders)
 
 `%,%` = paste0
 `%,,%` = paste
