@@ -87,23 +87,13 @@ html, body, h1, h2, h3, h4, h5, h6 {
 }
 
 /*
-.value-box {
-  font-size: 12px;
-}
-
-.value-box .fas, .value-box .bi {
-  font-size: 16px;
-}
+The following three are for the bslib package
 */
 
-
-.recalculating {
-    opacity: 1 !important;
-}
-
-#header-links-linkList > div > div > div > div {
+#header-links-linkList > div > div {
   min-width: 280px;
 }
+
 
 .link_list_div {
   margin-left:auto;
@@ -112,6 +102,11 @@ html, body, h1, h2, h3, h4, h5, h6 {
 
 .bslib-card[data-full-screen='true'] {z-index: 100001;}
 
+
+
+.recalculating {
+    opacity: 1 !important;
+}
 
 .popover {
   max-width: 500px; /* Maximum width of the popover */
@@ -144,3 +139,8 @@ html, body, h1, h2, h3, h4, h5, h6 {
    border: 1px dotted black;
    border-radius: 10px; /* Rounded corners */
  }
+
+
+svg {
+  max-height: 450px;
+}

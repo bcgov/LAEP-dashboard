@@ -20,6 +20,8 @@ pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidg
 `%,,%` = paste
 pa = function(x) print(x, n=Inf)
 
+is_local = Sys.getenv('SHINY_PORT') == ""
+
 # make the little red 'i' thingies for popover information
 info_icon = function(tooltip) popover(icon("info-circle", style="color: red"), tooltip)
 
@@ -30,8 +32,8 @@ t2 = function(df, pivot_col, new_col_name) {
   df = df |>
     select(-all_of(pivot_col)) |>
     t() |>
-    as_tibble(.name_repair = 'minimal')
-  names(df) = pi
+    as_tibble(.name_repair = 'unique')
+  names(df) = as.character(pi)
   df[new_col_name] = to_sentence_case(na)
   df = relocate(df, all_of(new_col_name), .before=1)
   return(df)
@@ -47,6 +49,7 @@ clean_regions = function(x) {
     str_replace("\\(.+\\)", "") |>
     str_replace("-", " ") |>
     str_replace("qathet", "Powell River") |>
+    str_replace("North Coast", "Skeena Queen Charlotte") |>
     str_squish()
 }
 

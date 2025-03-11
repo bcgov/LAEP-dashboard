@@ -7,5 +7,6 @@
 .DS_Store
 .quarto
 data
-data.Rds
+*.Rds
 app/rsconnect
+app/RDs_sf.Rds

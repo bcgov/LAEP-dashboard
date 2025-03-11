@@ -24,9 +24,9 @@
 
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
-load_data = F
+load_data = T
 
-xl_path = path(here::here() %,% ifelse(is_local, '/app', '') %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
+xl_path = path(here::here() %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
 
 pages = tibble(
   name = c("Home", "Regional Profile", "LAEP Calculator"),
@@ -81,7 +81,7 @@ if (load_data) {
   data[[1]] = mutate(data[[1]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
   data[[2]] = mutate(data[[2]], across(c("REGION_NAME", "PARENT_RD"), clean_regions))
 
-  saveRDS(data, here::here() %,% ifelse(is_local, '/app', '') %,% "/app/data.Rds")
+  saveRDS(data, here::here() %,% ifelse(is_local, '/app', '') %,% "data.Rds")
 
   BC_sf = bc_bound()
   saveRDS(BC_sf, here::here() %,% ifelse(is_local, '/app', '') %,% "/BC_sf.Rds")

@@ -176,6 +176,7 @@ server <- function(input, output, session) {
 
   # OBSERVABLES
 
+
   # add a LAEP scenario
   observeEvent(input$add_laep_scenario, {
     num_laeps(num_laeps() + 1)

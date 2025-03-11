@@ -110,13 +110,14 @@ make_summary_graph_output = function(df = toy_df, cols = regional_profile_info$c
   return(x)
 }
 
-make_summary_map_output = function(region = toy_region) {
+make_summary_map_output = function(map = base_map, region = toy_region) {
   df = RDs_sf |>
     filter(REF_YEAR == last_year) |>
     select(REGION_NAME, geometry, !!!regional_profile_info$col) |>
     mutate(is_chosen = REGION_NAME == region)
 
   centroid = st_centroid(filter(df, REGION_NAME == region) |> pull(geometry)) |> st_coordinates() |> unique()
+
 
   df |>
     leaflet() |>
