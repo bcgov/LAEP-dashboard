@@ -75,7 +75,7 @@ make_shift_share_table_output = function(df = toy_df2, yrs = years[1:2]) {
 make_summary_table_output = function(df=toy_df) {
   x = df |> select(REF_YEAR, !!!regional_profile_info$col)
   for (i in (1:length(regional_profile_info$col))) {
-    x[,i+1] = regional_profile_info$label[[i]]()(pull(x[,i+1]))
+    x[,i+1] = regional_profile_info$label[[i]](pull(x[,i+1]))
   }
   x = x |>
     t2("REF_YEAR", "Variable")

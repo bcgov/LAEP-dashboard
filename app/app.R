@@ -4,40 +4,6 @@ source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local 
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/Jeff.R"), local = T)
 
 
-
-summary_map_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), function(name) {
-  "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(regional_profile_info$col, function(col) {
-    regional_profile_info$col_short[match(col, regional_profile_info$col)] %,% ":" %,,% regional_profile_info$label[[match(col, regional_profile_info$col)]]()(pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
-  }) |>
-      paste(collapse="<br />"))
-}) |>
-  lapply(HTML)
-
-map = RDs_sf |>
-  filter(REF_YEAR == last_year) |>
-  select(REGION_NAME, geometry, !!!regional_profile_info$col) |>
-  leaflet() |>
-  #setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
-  addTiles() |>
-  addPolygons(
-    fillColor = topo.colors(10, alpha = NULL),
-    stroke = T,
-    #weight = ~ifelse(is_chosen, 5, 1),
-    highlightOptions = highlightOptions(
-      weight = 5,
-      color = "#666",
-      fillOpacity = 0.7,
-      bringToFront = TRUE),
-    label = summary_map_labels,
-    labelOptions = labelOptions(
-      style = list("font-weight" = "normal", padding = "3px 8px"),
-      textsize = "15px",
-      direction = "auto")
-  )
-
-
-
-
 ui <- function(req) {
   shiny::fluidPage(
     HTML("<html lang='en'>"),
@@ -54,7 +20,7 @@ ui <- function(req) {
 
             radioGroupButtons(
               inputId = "choose_page",
-              label = "Choose Your Page",
+              label = "1. Choose Your Page",
               choiceNames = pages$choice,
               choiceValues = pages$name,
               individual = TRUE,
@@ -65,10 +31,10 @@ ui <- function(req) {
             ),
 
             div(id = "choose_region_div", style = "display: none;",
-              pickerInput("choose_RD", "Choose the RD to profile", choices = RDs, multiple = F),
-              radioGroupButtons("choose_level", "RD or EDA?", choices = c("RD", "EDA"), selected = "EDA"),
-              pickerInput("choose_EDA", "Choose the EDA to profile", choices = EDAs, multiple = F),
-              pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
+              pickerInput("choose_RD", span("2. Choose the Regional District", info_icon(tooltips$RD)), choices = RDs, multiple = F),
+              radioGroupButtons("choose_level", span("3. Choose the Geography Level", info_icon(tooltips$geography_level)), choiceNames = c("Regional District", "Local Area"), choiceValues = c("RD", "LA"), selected="RD"),
+              pickerInput("choose_LA", span("3.1 Choose the Regional District", info_icon(tooltips$RD)), choices = LAs, multiple = F),
+              pickerInput("choose_shift_share", "4. Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
             ),
 
             div(id = "choose_laep_div", style = "display: none;",
@@ -118,11 +84,11 @@ server <- function(input, output, session) {
   # the number of LAEP scenarios (starts off with none)
   num_laeps = reactiveVal(0)
 
-  # reactives for RD and EDA choices
+  # reactives for RD and LA choices
   RD = eventReactive(input$choose_RD, input$choose_RD)
-  EDA = reactive(if (input$choose_level == "RD") NULL else input$choose_EDA)
+  LA = reactive(if (input$choose_level == "RD") NULL else input$choose_LA)
 
-  # reactives for the data[[1]] and data[[2]] at the RD and EDA levels
+  # reactives for the data[[1]] and data[[2]] at the RD and LA levels
   RD_data = eventReactive(RD(), filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == RD()))
   RD_data_jobs = eventReactive(RD(), {
     df = data[[2]] |>
@@ -132,20 +98,20 @@ server <- function(input, output, session) {
       mutate(across(everything(), as.integer))
     t2(df, "REF_YEAR", "Industry")
   })
-  EDA_data = eventReactive(EDA(), if (is.null(EDA())) NULL else filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == EDA()))
-  EDA_data_jobs = eventReactive(EDA(), {
-    if (is.null(EDA())) return(NULL)
+  LA_data = eventReactive(LA(), if (is.null(LA())) NULL else filter(data[[1]], GEO_TYPE == "EDA", REGION_NAME == LA()))
+  LA_data_jobs = eventReactive(LA(), {
+    if (is.null(LA())) return(NULL)
     df = data[[2]] |>
-      filter(GEO_TYPE == "EDA", REGION_NAME == EDA()) |>
+      filter(GEO_TYPE == "EDA", REGION_NAME == LA()) |>
       select(-matches("_TOTAL$")) |>
       select(REF_YEAR, TOTAL:last_col()) |>
       mutate(across(everything(), as.integer))
     t2(df, "REF_YEAR", "Industry")
   })
 
-  # pick the correct data frames above (RD or EDA level)
-  data_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data() else EDA_data())
-  data_jobs_final = eventReactive(input$choose_level, if (input$choose_level == "RD") RD_data_jobs() else EDA_data_jobs())
+  # pick the correct data frames above (RD or LA level)
+  data_final = reactive(if (input$choose_level == "RD") RD_data() else LA_data())
+  data_jobs_final = reactive(if (input$choose_level == "RD") RD_data_jobs() else LA_data_jobs())
 
   # A text representation of the choices in the 'shift share'
   shift_share_years = eventReactive(input$choose_shift_share, as.integer(c(word(input$choose_shift_share, 1), word(input$choose_shift_share, 3))))
@@ -163,7 +129,7 @@ server <- function(input, output, session) {
 
   # Regional Profile Page outputs
 
-  output$regional_profile_h1 = renderText(if (input$choose_level == "EDA") "Economic Profile: " %,% EDA() %,,% "Economic Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
+  output$regional_profile_h1 = renderText(if (input$choose_level == "LA") "Economic Profile: " %,% LA() %,,% "Local Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
 
   output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), regional_profile_info, tooltips))
 
@@ -210,6 +176,9 @@ server <- function(input, output, session) {
 
   # OBSERVABLES
 
+  # reset RD
+  observeEvent(input$choose_RD, updateRadioGroupButtons(session, "choose_level", selected="RD"))
+
 
   # add a LAEP scenario
   observeEvent(input$add_laep_scenario, {
@@ -228,9 +197,9 @@ server <- function(input, output, session) {
   })
 
 
-  observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_EDA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
+  observeEvent(input$choose_RD, updatePickerInput(session, inputId = "choose_LA", choices = filter(data[[1]], GEO_TYPE == "EDA", PARENT_RD == input$choose_RD) |> pull(REGION_NAME) |> unique()))
 
-  observe(if (input$choose_level == "RD") hide("choose_EDA") else show("choose_EDA"))
+  observe(if (input$choose_level == "RD") hide("choose_LA") else show("choose_LA"))
 
   observeEvent(input$choose_page, {
     shinyjs::show(input$choose_page)

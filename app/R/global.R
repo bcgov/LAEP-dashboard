@@ -41,8 +41,8 @@ regional_profile_info = tibble(
   col = c("POPULATION", "TOTAL_JOBS", "TOTAL_INCOME", "AVERAGE_EMPLOYMENT_INCOME", "DIVERSITY_INDEX", "FOREST_SECTOR_VULNERABILITY_INDEX"),
   col_short = c("Pop", "Jobs", "Income", "Avg emp inc", "Diversity idx", "Forest vul idx"),
   icon = c("earth-americas", "tower-observation", "money-bills", "scale-balanced", "rainbow", "tree"),
-  label = c(NA, NA, "dollar", "dollar", NA, NA),
-  theme = c("cyan", "teal", "pink", "purple", "orange", "green")
+  label = list(label_comma(), label_comma(), label_dollar(), label_dollar(suffix = "/yr"), label_comma(), label_comma()),
+  theme = c("cyan", "teal", "pink", "purple", "orange", "green"),
   )
 
 
@@ -66,7 +66,7 @@ is_local = Sys.getenv('SHINY_PORT') == ""
 # Why does it say 'RD' at the end of some of these?
 # is data[[1]] consistent with data[[2]] and so on? Can we check formally?
 # Do these line up nicely with bcmaps?
-# Is there a way to match geography with EDA-level data?
+# Is there a way to match geography with LA-level data?
 # Why are we missing two RDs in the map?
 
 if (load_data) {
@@ -106,13 +106,13 @@ if (load_data) {
 # boolean for whether this is running locally or on shinyapps.io
 is_local = Sys.getenv('SHINY_PORT') == ""
 
-# Two dfs that filter data[[1]] by RD or EDA level.
+# Two dfs that filter data[[1]] by RD or LA level.
 RDs = data[[1]] |>
   filter(GEO_TYPE == "RD") |>
   pull(REGION_NAME) |>
   unique() |>
   sort()
-EDAs = data[[1]] |>
+LAs = data[[1]] |>
   filter(GEO_TYPE == "EDA") |>
   pull(REGION_NAME) |>
   unique() |>
@@ -133,13 +133,10 @@ home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page
 # read all the tooltips we'll use later
 tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/tooltips.R')$value
 
-# get the regional_profile_info labels ready for action
-regional_profile_info$label = map("scales::label_" %,% case_when(is.na(regional_profile_info$label) ~ "comma", T ~ regional_profile_info$label), lazyeval::lazy_eval)
-
 # Make the nice HTML for the labels on the map widget
 summary_map_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), function(name) {
   "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(regional_profile_info$col, function(col) {
-    regional_profile_info$col_short[match(col, regional_profile_info$col)] %,% ":" %,,% regional_profile_info$label[[match(col, regional_profile_info$col)]]()(pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
+    regional_profile_info$col_short[match(col, regional_profile_info$col)] %,% ":" %,,% regional_profile_info$label[[match(col, regional_profile_info$col)]](pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
   }) |>
       paste(collapse="<br />"))
 }) |>

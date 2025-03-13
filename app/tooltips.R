@@ -20,7 +20,14 @@ tooltips = list(
 
   top_employment = "This is a simple ranking of employment by industry, irrespective of which portions are basic or non-basic.
 
-  Tourism is an exception, where its employment estimate is a portion of many industries, as defined by each industry's tourism demand. Other industries do not have that portion subtracted here, so that one would be double-counting jobs if you added tourism to the other sectors. Most tourism demand falls under the \"other services\" category."
+  Tourism is an exception, where its employment estimate is a portion of many industries, as defined by each industry's tourism demand. Other industries do not have that portion subtracted here, so that one would be double-counting jobs if you added tourism to the other sectors. Most tourism demand falls under the \"other services\" category.",
+
+  geography_level = "Insert definitions of RDs and Local Areas here",
+
+  RD = "Insert definitions of RDs here",
+
+  LA = "Insert definitions of Local Areas here"
+
 
 )
 

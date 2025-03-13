@@ -58,10 +58,10 @@ clean_regions = function(x) {
 make_value_box = function(df, title, col, labeller, theme, icon, tooltip = NULL) {
   bslib::value_box(
     title = if (is.null(tooltip)) title else span(title, info_icon(tooltip)),
-    value = labeller()(filter(df, REF_YEAR == last_year) |> pull(!!col)),
+    value = labeller(filter(df, REF_YEAR == last_year) |> pull(!!col)),
     showcase = icon(icon),
     theme = theme,
-    p("B.C. Total: " %,% labeller()(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
+    p("B.C. Total: " %,% labeller(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
   )
 }
 
