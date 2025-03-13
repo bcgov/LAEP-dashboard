@@ -24,7 +24,7 @@
 
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
-load_data = T
+load_data = F
 
 xl_path = path(here::here() %,% '/data/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
 

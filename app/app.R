@@ -4,6 +4,40 @@ source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local 
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/Jeff.R"), local = T)
 
 
+
+summary_map_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), function(name) {
+  "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(regional_profile_info$col, function(col) {
+    regional_profile_info$col_short[match(col, regional_profile_info$col)] %,% ":" %,,% regional_profile_info$label[[match(col, regional_profile_info$col)]]()(pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
+  }) |>
+      paste(collapse="<br />"))
+}) |>
+  lapply(HTML)
+
+map = RDs_sf |>
+  filter(REF_YEAR == last_year) |>
+  select(REGION_NAME, geometry, !!!regional_profile_info$col) |>
+  leaflet() |>
+  #setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
+  addTiles() |>
+  addPolygons(
+    fillColor = topo.colors(10, alpha = NULL),
+    stroke = T,
+    #weight = ~ifelse(is_chosen, 5, 1),
+    highlightOptions = highlightOptions(
+      weight = 5,
+      color = "#666",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = summary_map_labels,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")
+  )
+
+
+
+
 ui <- function(req) {
   shiny::fluidPage(
     HTML("<html lang='en'>"),
@@ -30,21 +64,21 @@ ui <- function(req) {
               selected = if (is_local) start_page[1] else start_page[2]
             ),
 
-            div(id = "choose_region_div",
+            div(id = "choose_region_div", style = "display: none;",
               pickerInput("choose_RD", "Choose the RD to profile", choices = RDs, multiple = F),
               radioGroupButtons("choose_level", "RD or EDA?", choices = c("RD", "EDA"), selected = "EDA"),
               pickerInput("choose_EDA", "Choose the EDA to profile", choices = EDAs, multiple = F),
               pickerInput("choose_shift_share", "Choose the Shift/Share Period to Analyze", choices = shift_share_year_combos, multiple = F)
             ),
 
-            div(id = "choose_laep_div",
+            div(id = "choose_laep_div", style = "display: none;",
               actionBttn("add_laep_scenario", "Add a Scenario", color = 'success'),
             ),
 
             br(),
             br(),
 
-            div(id = "download_div", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
+            div(id = "download_div", style = "display: none;", downloadBttn("download_button", "Download data", size = 'sm', block = F, color = 'primary')),
             div(style = "text-align:left; color:#b8c7ce; font-size: .8em;", "Last updated:" %,,% last_updated)
           ), ## end sidebar
 
