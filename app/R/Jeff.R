@@ -17,7 +17,7 @@ if (is_local) {
 }
 
 
-# These are the functions that I require the SME to write
+# These are the functions that I require the SME to help write
 
 # Very much WIP, but this function returns a bslib card used for one of those "LAEP Scenarios". Note that all the objects in the card have the `_i` suffix so they can be updated.
 laep_scenario_card = function(i) {
@@ -97,13 +97,13 @@ make_summary_graph_output = function(df = toy_df, cols = regional_profile_info$c
       pivot_longer(cols = 2:last_col()) |>
       mutate(year = as.factor(`Ref year`)) |>
       ggplot(aes(y=value, x=year, fill=year)) +
-      geom_col_interactive(aes(tooltip = year %,% ":" %,,% labeller()(value), data_id = year), position = 'dodge', hover_nearest = T) +
+      geom_col_interactive(aes(tooltip = year %,% ":" %,,% labeller(value), data_id = year), position = 'dodge', hover_nearest = T) +
       ggthemes::theme_clean() +
       theme(legend.position = 'bottom') +
       scale_fill_viridis_d() +
       labs(x=NULL, y=NULL, fill=NULL) +
       guides(fill='none') +
-      scale_y_continuous(labels = labeller()) +
+      scale_y_continuous(labels = labeller) +
       facet_wrap(~name)
   })
 
