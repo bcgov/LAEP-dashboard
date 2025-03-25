@@ -132,7 +132,7 @@ server <- function(input, output, session) {
 
   output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), regional_profile_info, tooltips))
 
-  output$summary_table = renderReactable(nicetable(make_summary_table_output(data_final()), rowStyle = function(index) if (index%%2==0) list(fontStyle = "italic")))
+  output$summary_table = renderReactable(nicetable(make_summary_table_output(data_final()), rowStyle = function(index) if (index%%2==0) list(fontStyle = "italic", fontSize = ".8em")))
 
   output$summary_graph = renderGirafe({
     req(input$choose_summary_graph)
