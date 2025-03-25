@@ -3,11 +3,11 @@ source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"), loc
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local = T)
 source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/Jeff.R"), local = T)
 
-
 ui <- function(req) {
   shiny::fluidPage(
     HTML("<html lang='en'>"),
     tags$head(tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")),
+    tags$head(includeHTML("www/google-analytics.html")),
     fluidRow(
       bcsapps::bcsHeaderUI(id = 'header', appname = "LAEP Dashboard", github = "https://github.com/bcgov/LAEP-dashboard"),
       tags$head(tags$link(rel = "shortcut icon", href = "favicon.png")), ## to add BCGov favicon
@@ -84,15 +84,14 @@ server <- function(input, output, session) {
   # the number of LAEP scenarios (starts off with none)
   num_laeps = reactiveVal(0)
 
-  # reactives for RD and LA choices
-  RD = eventReactive(input$choose_RD, input$choose_RD)
+  # reactive for LA choice (RD is always chosen so can use input$choose_RD)
   LA = reactive(if (input$choose_level == "RD") NULL else input$choose_LA)
 
   # reactives for the data[[1]] and data[[2]] at the RD and LA levels
-  RD_data = eventReactive(RD(), filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == RD()))
-  RD_data_jobs = eventReactive(RD(), {
+  RD_data = eventReactive(input$choose_RD, filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == input$choose_RD))
+  RD_data_jobs = eventReactive(input$choose_RD, {
     df = data[[2]] |>
-      filter(GEO_TYPE == "RD", REGION_NAME == RD()) |>
+      filter(GEO_TYPE == "RD", REGION_NAME == input$choose_RD) |>
       select(-matches("_TOTAL$")) |>
       select(REF_YEAR, TOTAL:last_col()) |>
       mutate(across(everything(), as.integer))
@@ -129,11 +128,11 @@ server <- function(input, output, session) {
 
   # Regional Profile Page outputs
 
-  output$regional_profile_h1 = renderText(if (input$choose_level == "LA") "Economic Profile: " %,% LA() %,,% "Local Area" else "Economic Profile: " %,% RD() %,,% "Regional District")
+  output$regional_profile_h1 = renderText(if (input$choose_level == "LA") "Economic Profile: " %,% LA() %,,% "Local Area" else "Economic Profile: " %,% input$choose_RD %,,% "Regional District")
 
   output$regional_profile_row1 = renderUI(make_regional_profile_boxes(data_final(), regional_profile_info, tooltips))
 
-  output$summary_table = renderReactable(reactable(make_summary_table_output(data_final())))
+  output$summary_table = renderReactable(nicetable(make_summary_table_output(data_final()), rowStyle = function(index) if (index%%2==0) list(fontStyle = "italic")))
 
   output$summary_graph = renderGirafe({
     req(input$choose_summary_graph)
@@ -143,12 +142,12 @@ server <- function(input, output, session) {
 
   output$summary_map = renderLeaflet(make_summary_map_output(region = input$choose_RD))
 
-  output$shift_share_table = renderReactable(make_shift_share_table_output(data_jobs_final(), shift_share_years()) |> reactable(groupBy = 'group'))
+  output$shift_share_table = renderReactable(make_shift_share_table_output(data_jobs_final(), shift_share_years()) |> nicetable(groupBy = 'group'))
 
-  output$industry_table = renderReactable(reactable(make_industry_table(data_jobs_final())))
+  output$industry_table = renderReactable(nicetable(make_industry_table(data_jobs_final())))
 
   # LAEP Calculator Page outputs
-  observe(walk(1:num_laeps(), function(i) output[['laep_table_' %,% i]] = renderReactable(reactable(laep_outputs()[[i]], defaultPageSize = 5))))
+  observe(walk(1:num_laeps(), function(i) output[['laep_table_' %,% i]] = renderReactable(nicetable(laep_outputs()[[i]], defaultPageSize = 5))))
 
   # download handler output
   output$download_button = downloadHandler(

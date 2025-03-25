@@ -76,3 +76,5 @@ make_regional_profile_boxes = function(df, df_info, tooltips) {
     )
   )
 }
+
+nicetable = function(df, ...) reactable(df, ..., striped = TRUE, highlight = T)

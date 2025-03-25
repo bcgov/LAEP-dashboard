@@ -74,15 +74,29 @@ make_shift_share_table_output = function(df = toy_df2, yrs = years[1:2]) {
 # this function makes the summary table on Regional Profile Page. I believe it is complete as is.
 make_summary_table_output = function(df=toy_df) {
   x = df |> select(REF_YEAR, !!!regional_profile_info$col)
+  y = x |>
+    transmute(across(2:last_col(), function(x) x/lag(x,1)-1)) |>
+    mutate(across(everything(), label_percent())) |>
+    mutate(REF_YEAR = years, .before=1) |>
+    t2(pivot_col = "REF_YEAR", new_col_name = "Variable") |>
+    mutate(Variable = "\t% Change")
+
+
   for (i in (1:length(regional_profile_info$col))) {
     x[,i+1] = regional_profile_info$label[[i]](pull(x[,i+1]))
   }
   x = x |>
     t2("REF_YEAR", "Variable")
-  return(x)
+
+
+  z = tibble()
+  for (i in 1:nrow(x)) z = bind_rows(z, x[i,], y[i,])
+  return(z)
 }
 
-# make_summary_table_output(toy_df)
+# make_summary_table_output()
+
+
 
 
 # This guy returns a list of plots for the summary graph.

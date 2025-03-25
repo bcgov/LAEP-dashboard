@@ -11,3 +11,4 @@ data
 app/rsconnect
 app/RDs_sf.Rds
 bslib.R
+app/www/google-analytics.html
