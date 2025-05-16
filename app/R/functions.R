@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, readr, plotly, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork, shinycssloaders)
+pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork, shinycssloaders)
 
 # some convenience functions
 `%,%` = paste0
@@ -27,16 +27,13 @@ info_icon = function(tooltip) popover(icon("info-circle", style="color: red"), t
 
 # this is probably not well-written but it works: it's a function to transpose a data frame, intended for those output tables that have years as column names. `pivot_col` is typically going to be REF_YEAR; it's the column that will become the col names of the df. `new_col_name` is the name of first column of the resultant df, something like "Industry"
 t2 = function(df, pivot_col, new_col_name) {
-  na = setdiff(names(df), pivot_col)
-  pi = pull(df[pivot_col])
-  df = df |>
-    select(-all_of(pivot_col)) |>
-    t() |>
-    as_tibble(.name_repair = 'unique')
-  names(df) = as.character(pi)
-  df[new_col_name] = to_sentence_case(na)
-  df = relocate(df, all_of(new_col_name), .before=1)
-  return(df)
+
+  df |>
+    pivot_longer(-all_of(pivot_col),
+                 names_to = new_col_name,
+                 values_to = "values",
+                 names_transform = snakecase::to_sentence_case) |>
+    pivot_wider(names_from = pivot_col, values_from = "values")
 }
 
 # So data plays nicely with bcmaps
@@ -44,35 +41,41 @@ clean_regions = function(x) {
   x |>
     str_replace("Regional District( of)?", "") |>
     str_replace("Region", "") |>
-    str_replace("RD", "") |>
-    str_replace("-", " ") |>
-    str_replace("\\(.+\\)", "") |>
-    str_replace("-", " ") |>
+   # str_replace("RD", "") |>
+    str_replace(" - ", "-") |>
+    str_replace("\\((Unincorporated)\\)", "") |>
     str_replace("qathet", "Powell River") |>
-    str_replace("North Coast", "Skeena Queen Charlotte") |>
+    str_replace("North Coast", "Skeena-Queen Charlotte") |>
+    str_replace("Columbia Shuswap", "Columbia-Shuswap") |>
     str_squish()
 }
 
 
 # Returns an individual bslib 'value box' for the first row of the Regional Profile page
 make_value_box = function(df, title, col, labeller, theme, icon, tooltip = NULL) {
-  bslib::value_box(
-    title = if (is.null(tooltip)) title else span(title, info_icon(tooltip)),
-    value = labeller(filter(df, REF_YEAR == last_year) |> pull(!!col)),
-    showcase = icon(icon),
-    theme = theme,
-    p("B.C. Total: " %,% labeller(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
+  bslib::card(
+    class = "bcs_vb",
+    card_body(
+      class = "bcs_vb",
+      span(icon(icon), title),
+      h4(labeller(filter(df, REF_YEAR == last_year) |> pull(!!col)|> janitor::round_half_up()))
+    )
+
+    #card_title(
+      #if (is.null(tooltip)) span(icon(icon), title) else span(icon(icon), title, info_icon(tooltip)),
+
+     # container = htmltools::div),
+
+
+    #card_footer("B.C. Total: " %,% labeller(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
   )
 }
 
 # Returns the 2x3 grid of value boxes
 make_regional_profile_boxes = function(df, df_info, tooltips) {
   div(
-    layout_column_wrap(width=1/3, fill = F,
-      !!!map(1:3, function(i) make_value_box(df, title = to_sentence_case(df_info$col[i]), col = df_info$col[i], labeller = df_info$label[[i]], theme = df_info$theme[i], icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
-    ),
-    layout_column_wrap(width=1/3, fill = F,
-      !!!map(4:6, function(i) make_value_box(df, title = to_sentence_case(df_info$col[i]), col = df_info$col[i], labeller =  df_info$label[[i]], theme = df_info$theme[i], icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
+    layout_column_wrap(width=1/5, fill = T,
+      !!!map(1:5, function(i) make_value_box(df, title = df_info$col_formatted[i], col = df_info$col[i], labeller = df_info$label[[i]], theme = "bcstats-value-box", icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
     )
   )
 }

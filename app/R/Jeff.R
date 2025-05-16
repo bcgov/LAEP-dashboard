@@ -1,20 +1,20 @@
 # This file is gonna house the code that Jeff (or whoever the subject expert is) fills in to render the final outputs of the dashboard. The idea is to isolate the step from going from the input chosen by the user (via all the drop down menus, etc.) to the output (such as a table or graph). So all that's needed is a function that achieves this and the data scientist can handle all the other stuff in the app. Also note that I have provided "toy" data frames so you can write these functions outside the Shiny app. I am hoping that it should be sufficient for the function to work successfully here with the correct toy data frame.
 
 # just run this bit every time to get the toy dfs
-is_local = Sys.getenv('SHINY_PORT') == ""
-if (is_local) {
-  source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"), local = T)
-  source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local = T)
-  toy_region = "Cariboo"
-  toy_df = data[[1]] |> filter(REGION_NAME == toy_region) |> select(REF_YEAR, !!!regional_profile_info$col)
-  toy_df2 = data[[2]] |>
-    filter(GEO_TYPE == "RD", REGION_NAME == toy_region) |>
-    select(-matches("_TOTAL$")) |>
-    select(REF_YEAR, TOTAL:last_col()) |>
-    mutate(across(everything(), as.integer))
-  toy_df2 = t2(toy_df2, "REF_YEAR", "Industry")
-
-}
+# is_local = Sys.getenv('SHINY_PORT') == ""
+# if (is_local) {
+#   source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/functions.R"), local = T)
+#   source(paste0(here::here(), ifelse(is_local, '/app', ''), "/R/global.R"), local = T)
+#   toy_region = "Cariboo"
+#   toy_df = data[[1]] |> filter(REGION_NAME == toy_region) |> select(REF_YEAR, !!!regional_profile_info$col)
+#   toy_df2 = data[[2]] |>
+#     filter(GEO_TYPE == "RD", REGION_NAME == toy_region) |>
+#     select(-matches("_TOTAL$")) |>
+#     select(REF_YEAR, TOTAL:last_col()) |>
+#     mutate(across(everything(), as.integer))
+#   toy_df2 = t2(toy_df2, "REF_YEAR", "Industry")
+#
+# }
 
 
 # These are the functions that I require the SME to help write
@@ -73,28 +73,24 @@ make_shift_share_table_output = function(df = toy_df2, yrs = years[1:2]) {
 
 # this function makes the summary table on Regional Profile Page. I believe it is complete as is.
 make_summary_table_output = function(df=toy_df) {
-  x = df |> select(REF_YEAR, !!!regional_profile_info$col)
-  y = x |>
-    transmute(across(2:last_col(), function(x) x/lag(x,1)-1)) |>
-    mutate(across(everything(), label_percent())) |>
-    mutate(REF_YEAR = years, .before=1) |>
-    t2(pivot_col = "REF_YEAR", new_col_name = "Variable") |>
-    mutate(Variable = "\t% Change")
+  df |> select(REF_YEAR, !!!regional_profile_info$col) |>
+    pivot_longer(-REF_YEAR, names_to = "col", values_to = "value") |>
+    group_by(col) |>
+    mutate(change = round_half_up(value/lag(value) -1, digits = 3),
+           dir = case_when(change > 0 ~ "▲",
+                           change < 0 ~ "▼",
+                           TRUE ~ "")) |>
+    ungroup() |>
+    left_join(regional_profile_info, by = "col") |>
+    mutate(f_values = map2_chr(label, value, ~.x(.y)),
+           final = case_when(is.na(change) ~ f_values,
+                             TRUE ~  paste0(f_values, "<br>(", dir, label_percent()(abs(change)),  ")"))) |>
+    select(REF_YEAR, Variable = col_formatted, final) |>
+    pivot_wider(names_from = "REF_YEAR", values_from = "final")
 
-
-  for (i in (1:length(regional_profile_info$col))) {
-    x[,i+1] = regional_profile_info$label[[i]](pull(x[,i+1]))
-  }
-  x = x |>
-    t2("REF_YEAR", "Variable")
-
-
-  z = tibble()
-  for (i in 1:nrow(x)) z = bind_rows(z, x[i,], y[i,])
-  return(z)
 }
 
-# make_summary_table_output()
+
 
 
 
@@ -124,42 +120,40 @@ make_summary_graph_output = function(df = toy_df, cols = regional_profile_info$c
   return(x)
 }
 
-make_summary_map_output = function(map = base_map, region = toy_region) {
-  df = RDs_sf |>
-    filter(REF_YEAR == last_year) |>
-    select(REGION_NAME, geometry, !!!regional_profile_info$col) |>
-    mutate(is_chosen = REGION_NAME == region)
-
-  centroid = st_centroid(filter(df, REGION_NAME == region) |> pull(geometry)) |> st_coordinates() |> unique()
-
-
-  df |>
-    leaflet() |>
-    setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
-    addTiles() |>
-    addPolygons(
-      fillColor = topo.colors(10, alpha = NULL),
-      stroke = T,
-      weight = ~ifelse(is_chosen, 5, 1),
-      highlightOptions = highlightOptions(
-        weight = 5,
-        color = "#666",
-        fillOpacity = 0.7,
-        bringToFront = TRUE),
-      label = summary_map_labels,
-      labelOptions = labelOptions(
-        style = list("font-weight" = "normal", padding = "3px 8px"),
-        textsize = "15px",
-        direction = "auto")
-    )
-}
+# make_summary_map_output = function(map = base_map, region = toy_region) {
+#   df = RDs_sf |>
+#     filter(REF_YEAR == last_year) |>
+#     select(REGION_NAME, geometry, !!!regional_profile_info$col) |>
+#     mutate(is_chosen = REGION_NAME == region) #|>
+#     #st_simplify()
+#
+#   centroid = st_centroid(filter(df, REGION_NAME == region) |> pull(geometry)) |> st_coordinates() |> unique()
+#
+#
+#   df |>
+#     leaflet() |>
+#     setView(lng = centroid[1], lat = centroid[2], zoom = 6) |>
+#     addTiles() |>
+#     addPolygons(
+#       fillColor = topo.colors(10, alpha = NULL),
+#       stroke = T,
+#       weight = ~ifelse(is_chosen, 5, 1),
+#       highlightOptions = highlightOptions(
+#         weight = 5,
+#         color = "#666",
+#         fillOpacity = 0.7,
+#         bringToFront = TRUE),
+#       label = summary_map_labels,
+#       labelOptions = labelOptions(
+#         style = list("font-weight" = "normal", padding = "3px 8px"),
+#         textsize = "15px",
+#         direction = "auto")
+#     )
+# }
 
 make_industry_table = function(df = toy_df2) {
   df |>
-    mutate(x = df[, ncol(df)]) |>
-    arrange(desc(x)) |>
-    select(-x) |>
-    filter(Industry != "Total") |>
-    head(5) |>
-    mutate(across(where(is.numeric), ~label_comma()(.)))
+    select(REF_YEAR, INDUSTRY, NUMBER_OF_JOBS) |>
+    mutate(NUMBER_OF_JOBS = label_comma()(NUMBER_OF_JOBS)) |>
+    pivot_wider(names_from = "REF_YEAR", values_from = "NUMBER_OF_JOBS")
 }
