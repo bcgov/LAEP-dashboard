@@ -95,6 +95,20 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
     map
   }
 
+  add_coloured_layer <- function(map, data) {
+
+    map |>
+      addPolygons(data = data,
+                  layerId = ~REGION_NAME,
+                  label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
+                  weight = 2, color = "#9F9D9C",
+                  fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.5,
+                  highlightOptions = highlightOptions(
+                    weight = 5,
+                    bringToFront = TRUE))
+
+  }
+
   ## base map
   m <- leaflet(options = leafletOptions(zoomSnap = 0.2, zoomDelta = 1, attributionControl = F)) |>
     addProviderTiles("CartoDB.Voyager") |>
@@ -128,13 +142,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
                       weight = 5,
                       bringToFront = TRUE)) |>
         addPolygons(data = centered_map, weight = 2, color = "#353433", fillOpacity = 0) |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE)) |>
+        add_coloured_layer(data = coloured_map) |>
         fitBounds(lng1 = bbox$xmin[[1]],
                   lat1 = bbox$ymin[[1]],
                   lng2 = bbox$xmax[[1]],
@@ -161,13 +169,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
                       color = "#9F9D9C",
                       bringToFront = TRUE)) |>
         addPolygons(data = outline_map, weight = 2, color = "#353433", fillOpacity = 0) |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE)) |>
+        add_coloured_layer(data = coloured_map) |>
         fitBounds(lng1 = bbox$xmin[[1]],
                   lat1 = bbox$ymin[[1]],
                   lng2 = bbox$xmax[[1]],
@@ -180,13 +182,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
         left_join(stat_data, by = "REGION_NAME")
 
       m <- m |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE))|>
+        add_coloured_layer(data = coloured_map) |>
         legend(data = coloured_map, x = coloured_map$STATISTIC)
 
     }
@@ -213,13 +209,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
                       weight = 5,
                       bringToFront = TRUE)) |>
         addPolygons(data = centered_map, weight = 2, color = "#353433", fillOpacity = 0) |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE)) |>
+        add_coloured_layer(data = coloured_map) |>
         fitBounds(lng1 = bbox$xmin[[1]],
                   lat1 = bbox$ymin[[1]],
                   lng2 = bbox$xmax[[1]],
@@ -243,13 +233,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
                       weight = 5,
                       color = "#9F9D9C",
                       bringToFront = TRUE)) |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE)) |>
+        add_coloured_layer(data = coloured_map) |>
         fitBounds(lng1 = bbox$xmin[[1]],
                   lat1 = bbox$ymin[[1]],
                   lng2 = bbox$xmax[[1]],
@@ -261,13 +245,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data, stat) {
         left_join(stat_data, by = "REGION_NAME")
 
       m <- m |>
-        addPolygons(data = coloured_map,
-                    layerId = ~REGION_NAME,
-                    label = ~lapply(paste0("<strong>",REGION_NAME,"</strong><br>", stat, ": ", comma(STATISTIC)), HTML),
-                    weight = 2, color = "#9F9D9C", fillColor = ~pal(stat_transform(STATISTIC)), fillOpacity = 0.7,
-                    highlightOptions = highlightOptions(
-                      weight = 5,
-                      bringToFront = TRUE))|>
+        add_coloured_layer(data = coloured_map) |>
         legend(data = coloured_map, x = coloured_map$STATISTIC)
     }
 
