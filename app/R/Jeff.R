@@ -155,5 +155,6 @@ make_industry_table = function(df = toy_df2) {
   df |>
     select(REF_YEAR, INDUSTRY, NUMBER_OF_JOBS) |>
     mutate(NUMBER_OF_JOBS = label_comma()(NUMBER_OF_JOBS)) |>
-    pivot_wider(names_from = "REF_YEAR", values_from = "NUMBER_OF_JOBS")
+    pivot_wider(names_from = "REF_YEAR", values_from = "NUMBER_OF_JOBS") |>
+    rename_all(snakecase::to_sentence_case)
 }
