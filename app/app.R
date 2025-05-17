@@ -25,13 +25,23 @@ ui <- function(req) {
                    pickerInput("choose_RD", "Choose Regional District", choices = rd_la_lookup |> distinct(RD) |> pull(), selected = "All regional districts", multiple = F),
                    pickerInput("choose_LA", "Choose Local Area", choices = "All local areas", multiple = F, selected = "All local areas"),
                    pickerInput("choose_topic", "Choose Topic",
-                               choices = c("Population" = "POPULATION",
-                                           "Jobs" = "TOTAL_JOBS",
-                                           "Total income" = "TOTAL_INCOME",
-                                           "Average employment income" = "AVERAGE_EMPLOYMENT_INCOME",
-                                           "Diversity index" = "DIVERSITY_INDEX"
-                                          ),
-                               multiple = F, selected = "Population"),
+                               choices = c("Basic statistics" = "POPULATION",
+                                           "Diversity index" = "DIVERSITY_INDEX",
+                                           "Income shares",
+                                           "Income sources"
+
+                                           # "Basic income sources" = "DOMINANT_BASIC_INCOME_SOURCE",
+                                           # "Private sector basic income sources" = "DOMINANT_PRIVATE_SECTOR_EMPLOYMENT_BASIC_INCOME_SOURCE"
+                                           ),
+                               multiple = F, selected = "POPULATION"),
+                   conditionalPanel(
+                     condition = "input.choose_topic == 'Income shares'",
+                     pickerInput("choose_industry", "Choose industry:", choices = c("Forestry", "Construction"))
+                   ),
+                   conditionalPanel(
+                     condition = "input.choose_topic == 'Income sources'",
+                     radioGroupButtons("choose_source", choices = c("Dominant basic source", "Dominant private sector source"), selected = "Dominant basic source", direction = "vertical", justified = TRUE, width = "100%")
+                   ),
                    actionButton("reset_map", label = "Reset map", icon = icon("arrow-rotate-right"))
 
 
@@ -43,11 +53,14 @@ ui <- function(req) {
                  uiOutput("regional_profile_row1"),
                  layout_column_wrap(width = 1/2,
                                     card(full_screen = TRUE,
-                                         card_body(leafletOutput("summary_map", height = "100%"))),
-                                    card(full_screen = TRUE,
-                                         card_body(reactableOutput("summary_table")))),
-                 card("Top 5 industries by employment", reactableOutput("industry_table"))
-                 )
+                                         card_body(leafletOutput("summary_map"#, height = "100%"
+                                                                 ))),
+                                    uiOutput("summary_card"))
+                 #                    card(full_screen = TRUE,
+                 #                         card_body(reactableOutput("summary_table")))),
+                 # card("Top 5 industries by employment", reactableOutput("industry_table"))
+             #    )
+             )
 )
 ),bcsapps::bcsFooterUI(id = 'footer')
 )
@@ -60,7 +73,7 @@ server <- function(input, output) {
   selected_region <- reactiveVal("British Columbia")
 
   # observe events ----
-  # change to level (RD or LA) ----
+  ## change to level (RD or LA) ----
   observeEvent(input$choose_level, {
 
     # if(input$choose_level == "RD") {
@@ -188,38 +201,73 @@ server <- function(input, output) {
   })
 
 
+  # outputs ----
 
-
-
-
-
-
-
-  #region <- reactive(if (input$choose_level == "RD") input$choose_RD else input$choose_LA)
-
-  output$regional_profile_row1 = renderUI(make_regional_profile_boxes(
-    filter(data[[1]], GEO_TYPE == "RD", REGION_NAME == "Capital"), regional_profile_info, tooltips))
+  output$regional_profile_row1 = renderUI(
+    make_regional_profile_boxes(
+      data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region(), REF_YEAR == 2020),
+      regional_profile_info,
+      tooltips)
+    )
 
   output$summary_map = renderLeaflet(
     make_map(input$choose_level, input$choose_RD, input$choose_LA,
              stat_data = data[["Descriptive Stats"]] |> filter(REF_YEAR == 2020) |> select(REGION_NAME, STATISTIC = input$choose_topic),
              stat = regional_profile_info |> filter(col == input$choose_topic) |> pull(col_formatted)))
 
-  output$summary_table = renderReactable(
-    reactable(defaultColDef = colDef(html = TRUE),
-              striped = TRUE,
-              make_summary_table_output(data[["Descriptive Stats"]] |>
-                                          filter(REGION_NAME == selected_region()))
-              )
-    )
 
-  output$industry_table = renderReactable(
-    reactable(defaultColDef = colDef(html = TRUE),
-              striped = TRUE,
-              make_industry_table(data[["Jobs"]] |>
-                                    filter(REGION_NAME == selected_region()))
-              )
-  )
+  output$summary_card <- renderUI({
+    if (input$choose_topic == "POPULATION") {
+      header <- "Summary"
+    } else {
+      header <- "Top 5 industries by employment"
+    }
+
+    card(
+      card_header(header),
+      reactableOutput("summary_table")
+    )
+  })
+
+  output$summary_table <- renderReactable({
+    if (input$choose_topic == "POPULATION") {
+      reactable(
+        make_summary_table_output(
+          data[["Descriptive Stats"]] |>
+            filter(REGION_NAME == selected_region())
+        ),
+        defaultColDef = colDef(html = TRUE),
+        striped = TRUE
+      )
+    } else {
+      reactable(
+        make_industry_table(
+          data[["Jobs"]] |>
+            filter(REGION_NAME == selected_region())
+        ),
+        defaultColDef = colDef(html = TRUE),
+        striped = TRUE
+      )
+    }
+  })
+  #
+  #
+  #
+  # output$summary_table = renderReactable(
+  #   reactable(defaultColDef = colDef(html = TRUE),
+  #             striped = TRUE,
+  #             make_summary_table_output(data[["Descriptive Stats"]] |>
+  #                                         filter(REGION_NAME == selected_region()))
+  #             )
+  #   )
+  #
+  # output$industry_table = renderReactable(
+  #   reactable(defaultColDef = colDef(html = TRUE),
+  #             striped = TRUE,
+  #             make_industry_table(data[["Jobs"]] |>
+  #                                   filter(REGION_NAME == selected_region()))
+  #             )
+  # )
 
 
 
