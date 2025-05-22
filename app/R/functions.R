@@ -13,28 +13,21 @@
 # limitations under the License.
 
 
-pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, leaflet, bcmaps, scales, openxlsx2, ggiraph, patchwork, shinycssloaders)
+pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, leaflet, bcmaps, sf, scales, openxlsx2, ggiraph, patchwork, shinycssloaders, bcsapps, bcstatslinks)
 
 # some convenience functions
 `%,%` = paste0
 `%,,%` = paste
-pa = function(x) print(x, n=Inf)
+pa = function(x) { rint(x, n=Inf) }
 
-is_local = Sys.getenv('SHINY_PORT') == ""
 
-# make the little red 'i' thingies for popover information
-info_icon = function(tooltip) popover(icon("info-circle", style="color: red"), tooltip)
+# make the little 'i' thingies for popover information
+info_icon = function(tooltip, color = NULL) {
+  if(!is.null(color)) { style = "color:" %,% color }
+  else { style = "" }
+  popover(icon("info-circle", style=style), tooltip)
+  }
 
-# this is probably not well-written but it works: it's a function to transpose a data frame, intended for those output tables that have years as column names. `pivot_col` is typically going to be REF_YEAR; it's the column that will become the col names of the df. `new_col_name` is the name of first column of the resultant df, something like "Industry"
-t2 = function(df, pivot_col, new_col_name) {
-
-  df |>
-    pivot_longer(-all_of(pivot_col),
-                 names_to = new_col_name,
-                 values_to = "values",
-                 names_transform = snakecase::to_sentence_case) |>
-    pivot_wider(names_from = pivot_col, values_from = "values")
-}
 
 # So data plays nicely with bcmaps
 clean_regions = function(x) {
@@ -52,32 +45,41 @@ clean_regions = function(x) {
 
 
 # Returns an individual bslib 'value box' for the first row of the Regional Profile page
-make_value_box = function(df, title, col, labeller, theme, icon, tooltip = NULL) {
+make_value_box = function(df, tooltip = NULL) {
   bslib::card(
     class = "bcs_vb",
     card_body(
       class = "bcs_vb",
-      span(icon(icon), title),
-      h4(labeller(filter(df, REF_YEAR == last_year) |> pull(!!col)|> janitor::round_half_up()))
+      if(is.null(tooltip)) { span(icon(df$ICON), df$VARIABLE) }
+      else { span(icon(df$ICON), df$VARIABLE, info_icon(tooltip)) },
+      h4(df$FORMATTED_VALUE)
     )
-
-    #card_title(
-      #if (is.null(tooltip)) span(icon(icon), title) else span(icon(icon), title, info_icon(tooltip)),
-
-     # container = htmltools::div),
-
-
-    #card_footer("B.C. Total: " %,% labeller(filter(data[[1]], REGION_NAME == 'British Columbia', REF_YEAR == last_year) |> pull(!!col)))
   )
 }
 
 # Returns the 2x3 grid of value boxes
-make_regional_profile_boxes = function(df, df_info, tooltips) {
+make_regional_profile_boxes = function(df, tooltips) {
   div(
     layout_column_wrap(width=1/5, fill = T,
-      !!!map(1:5, function(i) make_value_box(df, title = df_info$col_formatted[i], col = df_info$col[i], labeller = df_info$label[[i]], theme = "bcstats-value-box", icon = df_info$icon[i], tooltips[[df_info$col[i]]]))
+      !!!map(df$VARIABLE, ~make_value_box(df |> filter(VARIABLE == .x), tooltips[[.x]]))
     )
   )
 }
 
-nicetable = function(df, ...) reactable(df, ..., striped = TRUE, highlight = T)
+make_summary_table_output = function(df=toy_df) {
+
+  df |> select(REF_YEAR, VARIABLE, VALUE, FORMATTED_VALUE) |>
+    group_by(VARIABLE) |>
+    mutate(change = round_half_up(VALUE/lag(VALUE) -1, digits = 3),
+           dir = case_when(change > 0 ~ "▲",
+                           change < 0 ~ "▼",
+                           TRUE ~ "")) |>
+    ungroup() |>
+    mutate(final = case_when(is.na(change) ~ FORMATTED_VALUE,
+                             TRUE ~  paste0(FORMATTED_VALUE, "<br>(", dir, label_percent()(abs(change)),  ")"))) |>
+    select(REF_YEAR, Variable = VARIABLE, final) |>
+    pivot_wider(names_from = "REF_YEAR", values_from = "final")
+
+}
+
+nicetable = function(df, ...) {reactable(df, ..., striped = TRUE, highlight = T)}

@@ -166,3 +166,18 @@ button#reset_map:hover {
       background: rgba(255, 255, 255, 0.8);
       margin: 0;
     }
+
+/*radio button*/
+div#selected_year {
+    margin-bottom: 0;
+}
+
+/*adjust max height for choose topic dropdown*/
+.dropdown-menu.show {
+  max-height: 400px !important;
+}
+
+/*bring popovers to the front*/
+.popover {
+  z-index: 100001;
+}
