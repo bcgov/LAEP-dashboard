@@ -1,14 +1,6 @@
 .Rproj.user
 .Rhistory
-.RData
-.Ruserdata
-.Rdata
-.httr-oauth
-.DS_Store
-.quarto
-data
-*.Rds
-app/rsconnect
-app/RDs_sf.Rds
-bslib.R
+renv.lock
+rsconnect
+config*
 app/www/google-analytics.html
