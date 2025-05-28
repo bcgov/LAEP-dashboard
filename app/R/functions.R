@@ -12,24 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+## load libraries
+pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools,
+               reactable, shinyjs, shinyWidgets, fs, janitor,
+               snakecase, leaflet, bcmaps, rmapshaper, sf, scales,
+               openxlsx2, ggiraph, patchwork, shinycssloaders,
+               bcsapps, bcstatslinks)
 
-pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools, reactable, shinyjs, shinyWidgets, fs, janitor, snakecase, leaflet, bcmaps, sf, scales, openxlsx2, ggiraph, patchwork, shinycssloaders, bcsapps, bcstatslinks)
 
-# some convenience functions
-`%,%` = paste0
-`%,,%` = paste
-pa = function(x) { rint(x, n=Inf) }
-
-
-# make the little 'i' thingies for popover information
+# make the info for popover icons
 info_icon = function(tooltip, color = NULL) {
-  if(!is.null(color)) { style = "color:" %,% color }
+  if(!is.null(color)) { style = paste0("color:", color) }
   else { style = "" }
   popover(icon("info-circle", style=style), tooltip)
-  }
+}
 
-
-# So data plays nicely with bcmaps
+# function for cleaning region names
+## necessary for the region names from bcmaps to match the data
 clean_regions = function(x) {
   x |>
     str_replace("Regional District( of)?", "") |>
@@ -43,8 +42,7 @@ clean_regions = function(x) {
     str_squish()
 }
 
-
-# Returns an individual bslib 'value box' for the first row of the Regional Profile page
+# make a custom value box for the first row of the Regional Profile page
 make_value_box = function(df, tooltip = NULL) {
   bslib::card(
     class = "bcs_vb",
@@ -53,15 +51,6 @@ make_value_box = function(df, tooltip = NULL) {
       if(is.null(tooltip)) { span(icon(df$ICON), df$VARIABLE) }
       else { span(icon(df$ICON), df$VARIABLE, info_icon(tooltip)) },
       h4(df$FORMATTED_VALUE)
-    )
-  )
-}
-
-# Returns the 2x3 grid of value boxes
-make_regional_profile_boxes = function(df, tooltips) {
-  div(
-    layout_column_wrap(width=1/5, fill = T,
-      !!!map(df$VARIABLE, ~make_value_box(df |> filter(VARIABLE == .x), tooltips[[.x]]))
     )
   )
 }

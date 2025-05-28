@@ -13,17 +13,18 @@
 # limitations under the License.
 
 
-# PARAMETERS ----
-# I'm working on this project daily ATM so we'll leave it like this for now
-last_updated = format(ymd("2025-03-07"), "%b %d, %Y")
+# parameters ----
+last_updated = format(ymd("2025-05-28"), "%b %d, %Y")
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
 load_data = F
 
-# Excel toolkit file path
-xl_path = path_wd('app/Local Area Economic Profiles 2024 Toolkit V3.xlsx')
+# Excel toolkit file name
+## note path will be rootfolder/data
+xl_filename = "Local Area Economic Profiles 2024 Toolkit V3.xlsx"
 
-# LA shape file path
+# LA shape file name
+## note path will be rootfolder/data
 FILE_EDA <- "EDA_union.shp"
 
 ## Color code for industries
@@ -46,21 +47,25 @@ industry_colors = c(
   "Public sector" = "#DDCC77"
 )
 
-is_local = Sys.getenv('SHINY_PORT') == ""
-
-# GET DATA ----
+# create app data ----
 ## If load_data = T:
 # Reads in the data from the Excel file and processes it
 # Creates RD to LA lookup table
 # Creates the spatial files from FILE_EDA and bcmaps
-## If load_data = F:
-# Read in already created data
+## note: assumes the code is run locally for file paths
 if (load_data) {
+  source(here::here("app", "R", "functions.R"))
 
-  sheets <- c('Descriptive Stats', 'Jobs', 'Income Dependencies')
-  start_row <- c(3, 5, 5)
+  sheets <- c("Descriptive Stats", "Jobs", "Income Dependencies", "Location Quotients")
+  start_row <- c(3, 5, 5, 5)
 
-  data_orig = map2(sheets, start_row, function(sheet, skip) readxl::read_excel(xl_path, sheet, skip = skip) |> janitor::clean_names('screaming_snake'))
+  data_orig = map2(sheets,
+                   start_row,
+                   function(sheet, skip) {
+                     readxl::read_excel(here::here("data", xl_filename), sheet, skip = skip) |>
+                       janitor::clean_names("screaming_snake") |>
+                       filter(!is.na(REGION_NAME))
+                   })
 
   ## clean region names across all sheets
   data_orig <- map(data_orig, ~mutate(.x, across(c(REGION_NAME, PARENT_RD), clean_regions)))
@@ -239,7 +244,8 @@ if (load_data) {
     slice_max(order_by = VALUE, n = 5) |>
     ungroup()
 
-  saveRDS(data, here::here() %,% '/app/' %,% "data.Rds")
+  ## save data
+  saveRDS(data, here::here("app", "data", "data.rds"))
 
   ## Create lookup table for RD to LA
   rd_la_lookup <- data[["Descriptive Stats"]] |>
@@ -254,19 +260,11 @@ if (load_data) {
     rd_la_lookup
   )
 
-  saveRDS(rd_la_lookup, here::here() %,% '/app/' %,% "rd_la_lookup.Rds")
-
-  ## load BC mapping info (from bc data catalogue using the bcmaps package)
-  map_bc <- bcmaps::bc_bound() |>
-    ## simplify the boundaries, dTolerance in meters
-    st_simplify(dTolerance = 100, preserveTopology = TRUE) |>
-    st_transform(4326) |> ## transform to LAT/LONG for mapping
-    st_union() |>
-    st_as_sf() |>
-    transmute(REGION_NAME = "British Columbia")
+  ## save lookup table
+  saveRDS(rd_la_lookup, here::here("app", "data", "rd_la_lookup.rds"))
 
   ## load LA (EDA) mapping info (created by R_scripts/merging_geometries.R)
-  map_las <- read_sf(FILE_EDA) |>
+  map_las <- read_sf(here::here("data", FILE_EDA)) |>
     transmute(REGION_NAME = clean_regions(EDA_name))|>
     mutate(REGION_NAME = ifelse(str_detect(REGION_NAME, "Chilcotin"), "Chilcotin", REGION_NAME)) |>
     group_by(REGION_NAME) |>
@@ -318,49 +316,33 @@ if (load_data) {
     st_transform(4326) |>
     st_make_valid()
 
-  saveRDS(map_las, "app/map_las.rds")
-  saveRDS(map_rds, "app/map_rds.rds")
-  saveRDS(map_rds_clipped, "app/map_rds_clipped.rds")
-  saveRDS(map_bc, "app/map_bc.rds")
-
-} else {
-  data = readRDS(here::here(ifelse(is_local, 'app', '.'), "data.Rds"))
-  rd_la_lookup = readRDS(here::here(ifelse(is_local, 'app', '.'),"rd_la_lookup.Rds"))
-  map_las <- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_las.rds"))
-  map_rds <- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_rds.rds"))
-  map_rds_clipped<- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_rds_clipped.rds"))
-  map_bc <- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_bc.rds"))
-}
   ## explicitly make geographic attributes constant
   st_agr(map_las) <- "constant"
   st_agr(map_rds) <- "constant"
   st_agr(map_rds_clipped) <- "constant"
 
-# read all the tooltips we'll use later
-tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/R/tooltips.R')$value
+  ## save mapping data
+  saveRDS(map_las, here::here("app", "data", "map_las.rds"))
+  saveRDS(map_rds, here::here("app", "data", "map_rds.rds"))
+  saveRDS(map_rds_clipped, here::here("app", "data", "map_rds_clipped.rds"))
 
-# tease out the years for which we have data
-latest_year = max(data[[1]]$REF_YEAR)
-earliest_year = min(data[[1]]$REF_YEAR)
-years = unique(data[[1]]$REF_YEAR)
+}
 
+# load data for app ----
 
-# tease out the industries from data[[2]]
-#industries = to_sentence_case(setdiff(names(data[[2]]), c("KEY", "REGION_NAME", "REF_YEAR", "STATISTIC", "GEO_TYPE", "PARENT_RD", "TOTAL")))
+is_local = Sys.getenv("SHINY_PORT") == ""
 
-# read the code for the home page
-#home_page = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/home_page.R')$value
+## attribute data and lookup table
+data = readRDS(here::here(ifelse(is_local, "app", "."), "data", "data.rds"))
+rd_la_lookup = readRDS(here::here(ifelse(is_local, "app", "."), "data", "rd_la_lookup.rds"))
 
+## map data
+map_las <- readRDS(here::here(ifelse(is_local, "app", "."), "data", "map_las.rds"))
+map_rds <- readRDS(here::here(ifelse(is_local, "app", "."), "data", "map_rds.rds"))
+map_rds_clipped<- readRDS(here::here(ifelse(is_local, "app", "."), "data", "map_rds_clipped.rds"))
 
-
-# Make the nice HTML for the labels on the map widget
-# summary_map_labels = map(filter(RDs_sf, REF_YEAR == last_year) |> pull(REGION_NAME), function(name) {
-#   "<strong>" %,% name %,% "</strong><br/>\n" %,% (map(regional_profile_info$col, function(col) {
-#     regional_profile_info$col_short[match(col, regional_profile_info$col)] %,% ":" %,,% regional_profile_info$label[[match(col, regional_profile_info$col)]](pull(filter(RDs_sf, REF_YEAR == last_year, REGION_NAME == name), col))
-#   }) |>
-#       paste(collapse="<br />"))
-# }) |>
-#   lapply(HTML)
+## tooltips
+tooltips = source(here::here(ifelse(is_local, "app", "."), "R", "tooltips.R"))$value
 
 
 
