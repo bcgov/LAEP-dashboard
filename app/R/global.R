@@ -274,17 +274,20 @@ if (load_data) {
   map_rds_clipped <- bind_rows(
     non_island_rds,
     island_rds) |>
-    st_simplify(dTolerance = 100, preserveTopology = TRUE) |>
-    st_transform(4326)
+    ms_simplify(sys = TRUE, keep = 0.04) |>
+    st_transform(4326) |>
+    st_make_valid()
 
   ## simplify other map data
   map_las <- map_las |>
-    st_simplify(dTolerance = 100, preserveTopology = TRUE) |>
-    st_transform(4326)
+    ms_simplify(sys = TRUE, keep = 0.04) |>
+    st_transform(4326) |>
+    st_make_valid()
 
   map_rds <- map_rds |>
-    st_simplify(dTolerance = 100, preserveTopology = TRUE) |>
-    st_transform(4326)
+    ms_simplify(sys = TRUE, keep = 0.04) |>
+    st_transform(4326) |>
+    st_make_valid()
 
   saveRDS(map_las, "app/map_las.rds")
   saveRDS(map_rds, "app/map_rds.rds")
