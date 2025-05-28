@@ -302,6 +302,10 @@ if (load_data) {
   map_rds_clipped<- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_rds_clipped.rds"))
   map_bc <- readRDS(here::here(ifelse(is_local, 'app', '.'), "map_bc.rds"))
 }
+  ## explicitly make geographic attributes constant
+  st_agr(map_las) <- "constant"
+  st_agr(map_rds) <- "constant"
+  st_agr(map_rds_clipped) <- "constant"
 
 # read all the tooltips we'll use later
 tooltips = source(here::here() %,% ifelse(is_local, '/app', '') %,% '/R/tooltips.R')$value
