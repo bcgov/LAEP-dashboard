@@ -132,6 +132,7 @@ if (load_data) {
                              VALUE == "Non-employment market income" ~ VALUE, ## sentence case will remove the "-", so make special case
                              TRUE ~ snakecase::to_any_case(VALUE, "sentence")),
            FORMATTED_VALUE = ifelse(VALUE == "", NA, VALUE),
+           VARIABLE = str_remove_all(VARIABLE, "employment "),
            COLOR = as.character(industry_colors[VALUE]),
            MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>", FORMATTED_VALUE))
 
@@ -162,7 +163,7 @@ if (load_data) {
     ungroup()
 
   ## Format Income Dependencies
-  data[["Income Dependencies"]]<- data_orig[[3]] |>
+  data[["Income Shares Map"]]<- data_orig[[3]] |>
     select(KEY, REGION_NAME, REF_YEAR, GEO_TYPE, PARENT_RD, contains("TOTAL"),
            GOVERNMENT_TRANSFER_INCOME, NON_EMPLOYMENT_MARKET_INCOME) |>
     rename_all(str_remove_all, "_TOTAL") |>
@@ -181,10 +182,37 @@ if (load_data) {
         VARIABLE == "Ict" ~ "Information and communications technology",
         str_detect(VARIABLE, "Non employment") ~ str_replace(VARIABLE, "Non employment", "Non-employment"),
         TRUE ~ VARIABLE),
-    MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>",VARIABLE," income dependency: ", FORMATTED_VALUE),
-    MAP_TITLE = "Percent of economic base")
+    MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>",
+                       str_wrap(paste0(VARIABLE," share: ", FORMATTED_VALUE), width = 40)),
+    MAP_LABEL = str_replace_all(MAP_LABEL, "\n", "<br>"),
+    MAP_TITLE = str_wrap(paste("Basic income share from:", VARIABLE), width = 20))
 
-  data[["Economic Base"]] <- data_orig[[3]] |>
+  ## format data for the income shares table
+  data[["Income Shares Table"]] <- data_orig[[3]] |>
+    pivot_longer(-c(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD),
+                 names_to = "VARIABLE",
+                 names_transform = ~snakecase::to_any_case(.x, case = "sentence"),
+                 values_to = "VALUE") |>
+    mutate(TOTAL_COLUMN = str_detect(VARIABLE, "total|Government transfer income|Non employment market income"),
+           PARENT_VARIABLE = as.character(str_extract_all(VARIABLE, paste("Forestry", "Agriculture", "Tourism", "Public sector", "Other services", sep = "|"))),
+           VARIABLE = case_when(
+             !TOTAL_COLUMN ~ str_remove_all(VARIABLE, paste("Forestry", "Agriculture", "Tourism", "Public sector", "Other services", sep = "|")),
+              TOTAL_COLUMN ~ str_remove_all(VARIABLE, "total")),
+           VARIABLE = VARIABLE |> str_squish() |> to_any_case(case = "sentence"),
+           VARIABLE = case_when(
+             VARIABLE == "Film and tv" ~ "Film and TV",
+             VARIABLE == "Fire" ~ "Finance, insurance and real estate",
+             VARIABLE == "Ict" ~ "Information and communications technology",
+             VARIABLE == "Non employment market income" ~ "Non-employment market income",
+             TRUE ~ VARIABLE),
+           VARIABLE = fct_inorder(VARIABLE), ## make factor to keep correct order
+           TABLE_ORDER = as.integer(VARIABLE),
+           VALUE = str_remove_all(VALUE, "^(-|F)$"),
+           VALUE = as.numeric(VALUE),
+           FORMATTED_VALUE = label_percent(accuracy = 0.01)(VALUE))
+
+  ## Format Location Quotients - Top 5 industries per region
+  data[["Location Quotients"]] <- data_orig[[4]] |>
     rename_all(str_remove_all, "_TOTAL") |>
     pivot_longer(-c(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD),
                  names_to = "VARIABLE",
@@ -194,18 +222,19 @@ if (load_data) {
                             "Tourism accommodation", "Tourism food and beverage", "Tourism recreation and entertainment",
                             "Tourism retail", "Tourism other", "Public sector", "Other services")) |>
     mutate(VARIABLE = case_when(
+      REGION_NAME == "British Columbia" ~ "All industries",
       str_detect(VARIABLE, "Agriculture") ~ str_replace(VARIABLE,"Agriculture", "Agriculture:"),
       str_detect(VARIABLE, "Forestry") ~ str_replace(VARIABLE, "Forestry", "Forestry:"),
       str_detect(VARIABLE, "Other services") ~ str_replace(VARIABLE, "Other services", "Other services:"),
       str_detect(VARIABLE, "Public sector") ~ str_replace(VARIABLE, "Public sector", "Public sector:"),
-      str_detect(VARIABLE, "Non employment") ~ str_replace(VARIABLE, "Non employment", "Non-employment"),
       VARIABLE == "Film and tv" ~ "Film and TV",
       VARIABLE == "Fire" ~ "Finance, insurance and real estate",
       VARIABLE == "Ict" ~ "Information and communications technology",
-      TRUE ~ VARIABLE))  |>
+      TRUE ~ VARIABLE)) |>
     filter(!VALUE %in% c("-", "F")) |> ## remove missing data
-    mutate(VALUE = as.numeric(VALUE),
-           FORMATTED_VALUE = label_percent(accuracy = 0.01)(VALUE)) |>
+    mutate(VALUE = ifelse(REGION_NAME == "British Columbia", 1, as.numeric(VALUE)),
+           FORMATTED_VALUE = ifelse(REGION_NAME == "British Columbia", 1, label_comma(accuracy = 0.01)(round_half_up(VALUE, digits = 2)))) |>
+    distinct(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD, VARIABLE, VALUE, FORMATTED_VALUE) |>
     group_by(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD) |>
     slice_max(order_by = VALUE, n = 5) |>
     ungroup()
