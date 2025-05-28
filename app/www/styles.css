@@ -19,6 +19,11 @@ i, em {
   font: var(--typography-italic-body);
 }
 
+/* Small Body Text */
+.small-body {
+    font: var(--typography-regular-small-body);
+}
+
 /* =====================
    Headings (Bold by default)
    ===================== */
@@ -55,6 +60,7 @@ h6 i, h6 em { font: var(--typography-italic-h6); }
 body, h1, h2, h3, h4, h5, h6 {
   color: var(--typography-color-primary);
 }
+
 
 /*** OTHER ELEMENTS ***/
 
@@ -165,8 +171,28 @@ button#reset_map:hover {
       padding: 0 10px 0 0;
       background: rgba(255, 255, 255, 0.8);
       margin: 0;
-    }
+}
 
+/* =====================
+   tooltip styling
+   ===================== */
+   /*style tooltip on income source radio button to look like a popover*/
+.tooltip-inner {
+      background-color: #fff;
+      color: var(--typography-color-primary);
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      padding: 10px;
+      max-width: 250px;
+      font-size: 0.875rem;
+      text-align: left;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+
+/* =====================
+   miscellaneous
+   ===================== */
 /*radio button*/
 div#selected_year {
     margin-bottom: 0;
@@ -180,4 +206,9 @@ div#selected_year {
 /*bring popovers to the front*/
 .popover {
   z-index: 100001;
+}
+
+.bs-tooltip-end .tooltip-arrow::before, .bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
+  border-right-color:white;
+  border-width:0.5rem;
 }
