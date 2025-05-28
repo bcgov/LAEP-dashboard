@@ -142,6 +142,17 @@ server <- function(input, output) {
   ## selected region ----
   observeEvent(selected_region(), {
 
+    if(selected_region() == "British Columbia") {
+      updatePickerInput(
+        inputId = "choose_RD",
+        selected = "All regional districts")
+
+      updatePickerInput(
+        inputId = "choose_LA",
+        choices = c("All local areas", rd_la_lookup |> pull(LA)),
+        selected = "All local areas")
+    }
+
     ## if the selected region is a regional district
     ##  update the choose_RD selected value to the selected region
     ##  update the choose_LA choices to the LAs available in that RD, plus set the choose_LA selected value to "All"
@@ -152,7 +163,7 @@ server <- function(input, output) {
 
       updatePickerInput(
         inputId = "choose_LA",
-        choices = c("All local areas", rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)),
+        choices = c("All local areas", rd_la_lookup |> filter(RD == selected_region()) |> pull(LA)),
         selected = "All local areas")
     }
 
@@ -199,7 +210,7 @@ server <- function(input, output) {
     ## if choose_RD = All RDs -> BC
     ## else if choose_RD != All RDs, but choose_LA = All LAs -> input$choose_RD
     ## else -> input$choose_LA
-    if(input$choose_RD == "All regional districts") {
+    if(input$choose_RD == "All regional districts" & input$choose_LA == "All local areas") {
       selected_region("British Columbia")
     } else if (input$choose_LA == "All local areas") {
       selected_region(input$choose_RD)

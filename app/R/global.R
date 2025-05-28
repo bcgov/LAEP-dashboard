@@ -308,7 +308,7 @@ if (load_data) {
 
   ## simplify other map data
   map_las <- map_las |>
-    ms_simplify(sys = TRUE, keep = 0.04) |>
+    ms_simplify(sys = TRUE, keep = 0.2) |>
     st_transform(4326) |>
     st_make_valid()
 

@@ -109,7 +109,7 @@ add_colored_layer <- function(map, df, pal) {
 make_map <- function(region_type, rd_region, la_region, stat_data) {
 
   ## set base colour palette
-  pal <- colorNumeric("YlGn", domain = NULL)
+  pal <- colorNumeric("YlGn", domain = NULL, na.color = "white")
   light_border<- "#9F9D9C"
   dark_border <- "#252423"
 
@@ -135,7 +135,7 @@ make_map <- function(region_type, rd_region, la_region, stat_data) {
   if (region_type == "RD") {
 
     if (!str_detect(rd_region, "All") & str_detect(la_region, "All")) {
-      background_map <- map_rds
+      background_map <- map_rds |> filter(REGION_NAME != rd_region)
       outline_map <- map_rds |> filter(REGION_NAME == rd_region) |> mutate(color = dark_border) |>
         bind_rows(map_las |>
                     filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))) |>
@@ -206,7 +206,8 @@ make_map <- function(region_type, rd_region, la_region, stat_data) {
 
   ## add remaining layers
   m <- m |>
-    addPolygons(data = outline_map, weight = 2, color = ~color, fillOpacity = 0) |>
+    addPolygons(data = outline_map, weight = 2, color = ~color, fillOpacity = 0,
+                options = pathOptions(clickable = FALSE)) |>
     add_colored_layer(colored_map, pal) |>
     fitBounds(lng1 = bbox$xmin[[1]],
               lat1 = bbox$ymin[[1]],
