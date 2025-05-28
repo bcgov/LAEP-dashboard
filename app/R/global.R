@@ -14,7 +14,7 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-05-28"), "%b %d, %Y")
+last_updated = format(ymd("2025-05-27"), "%b %d, %Y")
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
 load_data = F
@@ -29,22 +29,22 @@ FILE_EDA <- "EDA_union.shp"
 
 ## Color code for industries
 industry_colors = c(
-  "Agriculture and food" = "#CCEBC5",
-  "Construction" = "#D55E00",
-  "Finance, insurance and real estate" = "#B3DE69",
-  "Fishing hunting and trapping" = "#FF0000",
-  "Forestry" = "#4DAF4A",
-  "Information and communications technology" = "#AA4499",
-  "Mining" = "#661100",
-  "Oil and gas" = "#999999",
-  "Other services" = "#D9D9D9",
-  "Rail transport" = "#8DD3C7",
-  "Retail trade" = "#80B1D3",
-  "Tourism" = "#377EB8",
-  "Water transport" = "#6699CC",
-  "Government transfers" = "#44AA99",
-  "Non-employment market income" = "#984EA3",
-  "Public sector" = "#DDCC77"
+  "Agriculture and food" = "#006d2c",               ## dark green
+  "Construction" = "#d95f0e",                       ## orange
+  "Finance, insurance and real estate" = "#54278f", ## dark purple
+  "Fishing hunting and trapping" = "#e31a1c",       ## red
+  "Forestry" = "#7fbf7b",                           ## light green
+  "Information and communications technology" = "#ae017e", ## magenta
+  "Mining" = "#993404",                             ## rust
+  "Oil and gas" = "#636363",                        ## dark grey
+  "Other services" = "#cccccc",                     ## light grey
+  "Rail transport" = "#df65b0",                     ## pink
+  "Retail trade" = "#80B1D3",                       ## med blue
+  "Tourism" = "#08519c",                            ## dark blue
+  "Water transport" = "#b9dbed",                    ## light blue
+  "Government transfers" = "#8dd3c7",               ## light teal
+  "Non-employment market income" = "#9e9ac8",       ## light purple
+  "Public sector" = "#d8b365"                       ## sand
 )
 
 # create app data ----
@@ -139,6 +139,7 @@ if (load_data) {
            FORMATTED_VALUE = ifelse(VALUE == "", NA, VALUE),
            VARIABLE = str_remove_all(VARIABLE, "employment "),
            COLOR = as.character(industry_colors[VALUE]),
+           COLOR = ifelse(is.na(COLOR), "white", COLOR),
            MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>", FORMATTED_VALUE))
 
   ## Format Jobs - Top 5 jobs per region
