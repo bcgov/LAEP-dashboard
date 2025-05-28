@@ -5,250 +5,264 @@ bcs_vb_theme <- value_box_theme(bg = "#D8EAFD", fg = "#2D2D2D")
 ui <- function(req) {
   tagList(
     tags$head(
-      tags$link(rel = "stylesheet", type = "text/css", href = "fonts.css"),
+      tags$link(rel = "stylesheet", type = "text/css", href = "BC_Sans.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "variables.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
       tags$link(rel = "shortcut icon", href = "favicon.png"), ## to add BCGov favicon
       bcsapps::bcsHeaderUI(id = 'header', appname = "Local Area Economic Profiles", github = "https://github.com/bcgov/LAEP-dashboard")
-    ),
+      ), ## end of tags$head
+
     column(width = 12, style = "margin-top:100px",
            page_sidebar(
              full_screen = TRUE,
              window_title = "Local Area Economic Profiles", ## browser tab name
-             sidebar = sidebar(title = "Regional Profile for",
-                               list(
-               div(id = "choose_region_div",
+
+             # sidebar ----
+             sidebar = sidebar(
+               title = "Economic Profile for",
+               list(
+                 div(
+                   id = "choose_region_div",
                    h4(class = "sidebar-region", textOutput("profile_heading")),
-                   radioGroupButtons("choose_level", choices = c("Regional Districts" = "RD", "Local Areas" = "LA"), selected = "RD", direction = "vertical", justified = TRUE, width = "100%"),
-                   pickerInput("choose_RD", "Choose Regional District", choices = rd_la_lookup |> distinct(RD) |> pull(), selected = "All regional districts", multiple = F),
-                   pickerInput("choose_LA", "Choose Local Area", choices = "All local areas", multiple = F, selected = "All local areas"),
-                   pickerInput("choose_topic", "Choose Map Topic",
-                               choices = c("Population",
-                                           "Diversity index",
-                                           "Income shares",
-                                           "Dominant income sources"),
-                               multiple = F, selected = "Basic statistics"),
+                   radioGroupButtons("choose_level",
+                                     choices = c("Regional Districts" = "RD", "Local Areas" = "LA"),
+                                     selected = "RD", direction = "vertical",
+                                     justified = TRUE,
+                                     width = "100%"),
+                   pickerInput("choose_RD",
+                               "Choose Regional District",
+                               choices = rd_la_lookup |> distinct(RD) |> pull(),
+                               selected = "All regional districts"),
+                   pickerInput("choose_LA",
+                               "Choose Local Area",
+                               choices = c("All local areas", rd_la_lookup |> distinct(LA) |> pull()),
+                               selected = "All local areas"),
+                   pickerInput(
+                     "choose_topic",
+                               "Choose Map Topic",
+                               choices = c("Population", "Diversity index", "Income shares", "Dominant basic income sources"),
+                               selected = "Population"),
                    conditionalPanel(
                      condition = "input.choose_topic == 'Income shares'",
-                     pickerInput("choose_industry", "Choose industry:", data[["Income Dependencies"]] |> pull(VARIABLE) |> unique())
-                   ),
+                     pickerInput("choose_industry",
+                                 "Choose Income Source:",
+                                 choices = data[["Income Shares Map"]] |> pull(VARIABLE) |> unique())),
                    conditionalPanel(
-                     condition = "input.choose_topic == 'Dominant income sources'",
-                     radioGroupButtons("choose_source",
-                                       choices = c("Basic sources" = "Dominant basic income source",
-                                                   "Private sector sources" = "Dominant private sector employment basic income source"),
-                                       selected = "Dominant basic income source",
-                                       direction = "vertical", justified = TRUE, width = "100%")
-                   ),
-                   actionButton("reset_map", label = "Reset map view", icon = icon("arrow-rotate-right")),
+                     condition = "input.choose_topic == 'Dominant basic income sources'",
+                     tooltip(
+                       id = "popover",
+                       placement = "right",
+                       radioGroupButtons("choose_source",
+                                         choices = c("All basic income sources" = "Dominant basic income source",
+                                                     "Private sector sources only" = "Dominant private sector basic income source"),
+                                         selected = "Dominant basic income source",
+                                         direction = "vertical",
+                                         justified = TRUE,
+                                         width = "100%"),
+                       HTML('The dominant basic income source is the largest source of external income flowing into the region.
+                            Choose "All basic income sources" to show the overall dominant source for
+                            each region, and "Private sector sources only" to find the most important basic
+                            income source related to a private sector industry.'))),
+                   actionButton("reset_map",
+                                label = "Reset map view",
+                                icon = icon("arrow-rotate-right")),
                    div(style = "margin-top:25px",
-                     strong("Resources:"),
-                     br(),
-                     a("LAEP toolkit", href=""),
-                     br(),
-                     a("FAQs", href = ""))
+                       strong("Resources:"),
+                       br(),
+                       a("LAEP toolkit", href=""),
+                       br(),
+                       a("FAQs", href = "")),
+                   div(class = "small-body",
+                       style = "margin-top:25px",
+                       HTML("Last updated:", last_updated))
+                   ) ## end of choose_region_div
+                 ) ## end of list
+               ), ## end of sidebar
 
+             # main panel ----
+             div(
+               id = "Regional Profile",
+               uiOutput("regional_profile_row1"), ## value boxes
 
-               )
-             )
-             ),
+               ## first row (map and summary table)
+               layout_column_wrap(
+                 width = 1/2,
+                 card(full_screen = TRUE,
+                      card_header(
+                        div(
+                          style = "display: flex; align-items: center; gap: 1rem;",
+                          tags$label("Select Year:"),
+                          radioButtons(
+                            inputId = "selected_year",
+                            label = NULL,
+                            choices = c("2010", "2015", "2020"),
+                            selected = "2020",
+                            inline = TRUE))),
+                      card_body(leafletOutput("map"))),
+                 card(full_screen = TRUE,
+                      card_header(uiOutput("summary_table_header")),
+                      card_body(reactableOutput("summary_table")))),
 
-             div(id = "Regional Profile",
-                 uiOutput("regional_profile_row1"),
-                 layout_column_wrap(width = 1/2,
-                                    card(full_screen = TRUE,
-                                         card_body(div(
-                                           style = "display: flex; align-items: center; gap: 1rem;",
-                                           tags$label("Select Year:"),
-                                           radioButtons(
-                                           inputId = "selected_year",
-                                           label = NULL,
-                                           choices = c("2010", "2015", "2020"),
-                                           selected = "2020",
-                                           inline = TRUE
-                                         )),
-                                           leafletOutput("map"#, height = "100%"
-                                                                 ))),
-                                    card(full_screen = TRUE,
-                                         card_header(span("Summary statistics", info_icon(tooltips$summary_statistics))),
-                                         card_body(reactableOutput("summary_table")))
-                                    ),
-                 layout_column_wrap(width = 1/2,
-                                    card(full_screen = TRUE,
-                                         card_header(span("Top 5 industries by basic income share", info_icon(tooltips$top_shares))),
-                                         card_body(reactableOutput("top_5_shares"))),
-                                    card(full_screen = TRUE,
-                                         card_header(span("Top 5 industries by number of jobs", info_icon(tooltips$top_employment))),
-                                         card_body(reactableOutput("top_5_jobs"))))
+               ## second row (three tables)
+               layout_columns(
+                 ## left column (income shares table)
+                 card(full_screen = TRUE,
+                      card_header(uiOutput("income_shares_header")),
+                      card_body(reactableOutput("income_shares"))),
 
-                                    # uiOutput("summary_card")
-                 #)
-                 #                    card(full_screen = TRUE,
-                 #                         card_body(reactableOutput("summary_table")))),
-                 # card("Top 5 industries by employment", reactableOutput("industry_table"))
-                 )
-           #  )
-)
-),
-bcsapps::bcsFooterUI(id = 'footer')
-)
+                 ## right column (top 5 jobs and top 5 lq tables)
+                 layout_columns(
+                   card(full_screen = TRUE,
+                        card_header(uiOutput("top_5_jobs_header")),
+                        card_body(reactableOutput("top_5_jobs"))),
+                   card(full_screen = TRUE,
+                        card_header(uiOutput("top_5_lqs_header")),
+                        card_body(reactableOutput("top_5_lqs"))),
+                   col_widths = c(12,12)))
+               ) ## end of main panel div
+             ) ## end of page sidebar
+           ), ## end of column
+
+    bcsapps::bcsFooterUI(id = 'footer')
+    ) ## end of taglist
 }
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
   # reactive values ----
+
+  ## selected region ----
+  ## set the initial selected region to British Columbia
   selected_region <- reactiveVal("British Columbia")
 
+
   # observe events ----
-  ## change to level (RD or LA) ----
-  observeEvent(input$choose_level, {
 
-    # if(input$choose_level == "RD") {
-    #   updatePickerInput(
-    #     inputId = "choose_LA",
-    #     choices = c("All local areas"),
-    #     selected = "All local areas")
-    #
-    #
-    # } else {
-    #
-    #
-    #   updatePickerInput(
-    #     inputId = "choose_LA",
-    #     choices = c("All local areas", rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)),
-    #     selected = isolate(input$choose_LA) ## do not update selected
-    #   )
-    # }
+  ## selected region ----
+  observeEvent(selected_region(), {
 
-  })
-
-
-  ## change to regional district ----
-  observeEvent(input$choose_RD, {
-    req(input$choose_RD)
-
-    # Update local area dropdown
-    new_LA_list <- rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)
-
-    ## check if selected LA is in the LA list linked to the selected RD
-    ## and that the selection has not been reset (i.e., All regions)
-    if(input$choose_RD == "All regional districts") {keep_selected <- FALSE}
-    else if(!input$choose_LA %in% new_LA_list) {keep_selected <- FALSE}
-    else {keep_selected <-  TRUE}
-
-    if(keep_selected) {
-      updatePickerInput(
-        inputId = "choose_LA",
-        choices = c("All local areas", rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)),
-        selected = isolate(input$choose_LA) ## do not update selected
-      )
-    } else {
-      updatePickerInput(
-        inputId = "choose_LA",
-        choices = c("All local areas", rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)),
-        selected = "All local areas"
-      )
-    }
-
-    # Update selected region
-    if(input$choose_RD == "All regional districts") {
-      selected_region("British Columbia")
-    } else if(input$choose_RD != "All regional districts" & input$choose_LA == "All local areas") {
-      selected_region(input$choose_RD)
-    } else {
-      selected_region(input$choose_LA)
-    }
-
-  })
-
-
-  ## change to local area ----
-  observeEvent(input$choose_LA, {
-    req(input$choose_LA)
-    new_selected <- rd_la_lookup |> filter(LA == input$choose_LA & RD != "All regional districts") |> pull(RD)
-    print(input$choose_LA)
-    print(new_selected)
-
-    # Update selected regional district
-    if(input$choose_LA != "All local areas") {
-      updatePickerInput(
-        inputId = "choose_RD",
-        selected = new_selected
-
-      )
-    }
-
-    # Update selected region
-    if(input$choose_RD == "All regional districts") {
-      selected_region("British Columbia")
-    } else if(input$choose_RD != "All regional districts" & input$choose_LA == "All local areas") {
-      selected_region(input$choose_RD)
-    } else {
-      selected_region(input$choose_LA)
-    }
-
-  })
-
-
-  ## change to clicked region on map ----
-  observeEvent(input$map_shape_click, {
-
-    # Update selected region
-    selected_region(input$map_shape_click$id)
-
+    ## if the selected region is a regional district
+    ##  update the choose_RD selected value to the selected region
+    ##  update the choose_LA choices to the LAs available in that RD, plus set the choose_LA selected value to "All"
     if(selected_region() %in% rd_la_lookup$RD) {
-      print(paste("mapclick RD:", selected_region()))
       updatePickerInput(
         inputId = "choose_RD",
-        selected = selected_region()
-      )
+        selected = selected_region())
 
+      updatePickerInput(
+        inputId = "choose_LA",
+        choices = c("All local areas", rd_la_lookup |> filter(RD == input$choose_RD) |> pull(LA)),
+        selected = "All local areas")
     }
 
+    ## if the selected region is a local area
+    ## update the choose_RD selected value to the RD which contains the LA
+    ## update the choose_La choices to the LAs available in the associated RD, plus set the choose_LA selected to the selected region
     if(selected_region() %in% rd_la_lookup$LA) {
-      print(paste("mapclick LA:", selected_region()))
+      # print(paste("mapclick LA:", selected_region()))
       new_rd <- rd_la_lookup |> filter(LA == selected_region() & RD != "All regional districts") |> pull(RD)
+
+      updatePickerInput(
+        inputId = "choose_RD",
+        selected = new_rd)
 
       updatePickerInput(
         inputId = "choose_LA",
         choices = c("All local areas", rd_la_lookup |> filter(RD == new_rd) |> pull(LA)),
-        selected = selected_region()
-      )
-
+        selected = selected_region())
     }
-
-
   })
 
+
+  ## rd dropdown ----
+  observeEvent(input$choose_RD, {
+
+    ## if the choose_RD drop down is changed, update the selected region
+    ## if choose_RD = All RDs -> BC
+    ## else if choose_RD != All RDs, but choose_LA = All LAs -> input$choose_RD
+    ## else -> don't update the selected_region, as the value changed due to a change in the selected LA
+    if(input$choose_RD == "All regional districts") {
+      selected_region("British Columbia")
+    } else if (input$choose_LA == "All local areas") {
+      selected_region(input$choose_RD)
+    } else {
+      ## do nothing
+    }
+  })
+
+
+  ## la dropdown ----
+  observeEvent(input$choose_LA, {
+
+    ## if the choose_LA drop down is changed, update the selected region
+    ## if choose_RD = All RDs -> BC
+    ## else if choose_RD != All RDs, but choose_LA = All LAs -> input$choose_RD
+    ## else -> input$choose_LA
+    if(input$choose_RD == "All regional districts") {
+      selected_region("British Columbia")
+    } else if (input$choose_LA == "All local areas") {
+      selected_region(input$choose_RD)
+    } else {
+      selected_region(input$choose_LA)
+    }
+  })
+
+
+  ## map click ----
+  observeEvent(input$map_shape_click, {
+
+    # update the selected region to the region clicked on in the map
+    selected_region(input$map_shape_click$id)
+  })
+
+
+  ## reset map ----
   observeEvent(input$reset_map, {
 
-    # Update selected region
+    # update selected region
     selected_region("British Columbia")
 
-    # Update drop downs
+    # update rd dropdown
     updatePickerInput(
       inputId = "choose_RD",
-      selected = "All regional districts"
-    )
+      selected = "All regional districts")
 
+    ## update la dropdown#
+    updatePickerInput(
+      inputId = "choose_LA",
+      selected = "All local areas")
   })
 
 
   # outputs ----
+
+  ## profile header ----
   output$profile_heading <- renderText({
     selected_region()
   })
 
-  output$regional_profile_row1 = renderUI({
-    make_regional_profile_boxes(
-      data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region(), REF_YEAR == latest_year),
-      tooltips)
-    })
 
+  ## summary boxes ----
+  output$regional_profile_row1 = renderUI({
+
+    df <- data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region(), REF_YEAR == 2020)
+
+    div(
+      layout_column_wrap(width=1/5,
+                         fill = T,
+                         !!!map(df$VARIABLE,
+                                ~make_value_box(df |> filter(VARIABLE == .x),
+                                                tooltips[[.x]]))
+      ))
+  })
+
+  ## map ----
   output$map = renderLeaflet({
+
     req(input$choose_level, input$choose_RD, input$choose_LA, input$choose_topic)
 
+    ## determine which stats to map
     if (input$choose_topic == "Population") {
       df <- data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Population")
 
@@ -256,235 +270,194 @@ server <- function(input, output) {
       df <- data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Diversity index")
 
     } else if(input$choose_topic == "Income shares") {
-      df <- data[["Income Dependencies"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_industry)
+      df <- data[["Income Shares Map"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_industry)
 
     } else {
       df <- data[["Dominant Income Sources"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_source)
     }
 
-
+    ## make the map
     make_map(input$choose_level,
              input$choose_RD,
              input$choose_LA,
              stat_data = df)
     })
 
-  ## alternate mapping code ----
-  # output$map <- renderLeaflet({
-  #   leaflet(options = leafletOptions(zoomSnap = 0.2, zoomDelta = 1, attributionControl = FALSE)) |>
-  #     addProviderTiles("CartoDB.Voyager") |>
-  #     addPolygons(data = map_bc, layerId = ~REGION_NAME, label = ~REGION_NAME,
-  #                 weight = 0, color = "transparent", fillOpacity = 0) |>
-  #     addControl(html = HTML(
-  #       '<div class="leaflet-control-attribution">
-  #       Leaflet | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
-  #       contributors &copy; <a href="https://carto.com/">CARTO</a>
-  #     </div>'), position = "bottomleft")
-  # })
-  #
-  # observeEvent({ input$choose_level; input$choose_RD; input$choose_LA; input$choose_topic}, {
-  #   proxy <- leafletProxy("map") |> clearShapes() |> clearControls()
-  #
-  #   # Retrieve filtered data depending on input
-  #   region_type <- input$choose_level
-  #   rd_region <- input$choose_RD
-  #   la_region <- input$choose_LA
-  #   topic <- input$choose_topic
-  #
-  #   stat = regional_profile_info |> filter(col == topic) |> pull(col_formatted)
-  #   stat_data = data[["Descriptive Stats"]] |> filter(REF_YEAR == 2020) |> select(REGION_NAME, STATISTIC = all_of(topic))
-  #
-  #   pal <- colorNumeric("YlGn", domain = NULL)
-  #   light_border<- "#9F9D9C"
-  #   dark_border <- "#252423" #"#353433"
-  #
-  #   if (region_type == "RD") {
-  #     print("regiontype=RD")
-  #     if (!str_detect(rd_region, "All") & str_detect(la_region, "All")) {
-  #       print("region !all, la =all")
-  #
-  #       background_map <- map_rds
-  #       outline_map <- map_rds |> filter(REGION_NAME == rd_region) |> mutate(color = dark_border) |>
-  #         bind_rows(map_las |>
-  #                     filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))) |>
-  #                     mutate(color = light_border)
-  #                   )
-  #       centered_map <- map_rds |> filter(REGION_NAME == rd_region)
-  #       colored_map <- map_las |>
-  #         filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))) |>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #
-  #     } else if (!str_detect(rd_region, "All") & !str_detect(la_region, "All")) {
-  #       print("region !all, la !all")
-  #
-  #       background_map <- map_rds |> st_difference(map_las |> filter(REGION_NAME == la_region))
-  #       outline_map <- map_las |> filter(REGION_NAME == la_region) |> mutate(color = dark_border)
-  #       centered_map <- map_las |> filter(REGION_NAME == la_region)
-  #       colored_map <- map_las |> filter(REGION_NAME == la_region)|>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #
-  #     } else {
-  #       print("region = All")
-  #       background_map <- NULL
-  #       outline_map <- map_rds |> mutate(color = light_border)
-  #       centered_map <- map_rds
-  #       colored_map <- map_rds_clipped |>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #     }
-  #
-  #   } else {  # LA
-  #     print("regiontype = LA")
-  #     if (!str_detect(rd_region, "All") & str_detect(la_region, "All")) {
-  #       print("LA: region !all, la =all")
-  #
-  #       background_map <- map_las |> st_difference(map_las |>
-  #                                                    filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))))
-  #       outline_map <- map_rds |> filter(REGION_NAME == rd_region) |> mutate(color = dark_border) |>
-  #         bind_rows(map_las |>
-  #                     filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))) |>
-  #                     mutate(color = light_border)
-  #         )
-  #       centered_map <- map_rds |> filter(REGION_NAME == rd_region)
-  #       colored_map <- map_las |>
-  #         filter(REGION_NAME %in% (rd_la_lookup |> filter(RD == rd_region) |> pull(LA))) |>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #
-  #     } else if (!str_detect(rd_region, "All") & !str_detect(la_region, "All")) {
-  #       print("LA: region !all, la !all")
-  #       background_map <- map_las |> st_difference(map_las |> filter(REGION_NAME == la_region))
-  #       outline_map <- map_las |> filter(REGION_NAME == la_region) |> mutate(color = dark_border)
-  #       centered_map <- map_las |> filter(REGION_NAME == la_region)
-  #       colored_map <- map_las |> filter(REGION_NAME == la_region) |>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #
-  #     } else {
-  #       print("LA: region = All")
-  #       background_map <- NULL
-  #       outline_map <- map_las |> mutate(color = light_border)
-  #       centered_map <- map_las
-  #       colored_map <- map_las |>
-  #         left_join(stat_data, by = "REGION_NAME")
-  #     }
-  #   }
-  #
-  #   bbox <- st_bbox(centered_map)
-  #
-  #   print("pre-mapping")
-  #   if(!is.null(background_map)) {
-  #     print("backgroundmap")
-  #     proxy <- proxy |>
-  #       addPolygons(data = background_map,
-  #                   layerId = ~REGION_NAME,
-  #                   label = ~REGION_NAME,
-  #                   weight = 1, color = "#9F9D9C", fillOpacity = 0,
-  #                   highlightOptions = highlightOptions(
-  #                     weight = 5,
-  #                     color = "#9F9D9C",
-  #                     bringToFront = TRUE)
-  #       )
-  #   }
-  #
-  #   proxy <- proxy |>
-  #     addPolygons(data = outline_map, weight = 2, color = ~color, fillOpacity = 0) |>
-  #     add_colored_layer(data = colored_map, stat, pal) |>
-  #     fitBounds(lng1 = bbox$xmin[[1]],
-  #               lat1 = bbox$ymin[[1]],
-  #               lng2 = bbox$xmax[[1]],
-  #               lat2 = bbox$ymax[[1]]) |>
-  #     add_legend(colored_map, stat, pal)
-  #
-  # })
 
-# ----
+  ## summary table ----
+  output$summary_table_header <- renderUI({
 
-  output$summary_table <- renderReactable({
-    table <- data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region()) |> make_summary_table_output()
-
-    reactable(
-      table,
-      defaultColDef = colDef(html = TRUE),
-      striped = TRUE
-    )
-
+    span(info_icon(tooltips$summary_statistics),
+         "Summary statistics for: ",
+         selected_region())
   })
 
-  output$top_5_shares <- renderReactable({
-    table <- data[["Economic Base"]] |>
+  output$summary_table <- renderReactable({
+
+    table <- data[["Descriptive Stats"]] |>
       filter(REGION_NAME == selected_region()) |>
-      select(REF_YEAR, Industry = VARIABLE, FORMATTED_VALUE) |>
-      pivot_wider(names_from = "REF_YEAR", values_from = "FORMATTED_VALUE")
+      make_summary_table_output()
 
     reactable(
       table,
+      sortable = FALSE,
+      striped = TRUE,
+      theme = reactableTheme(
+        stripedColor = "#f6f9fc",
+      ),
       defaultColDef = colDef(html = TRUE),
       columns = list(
-        Industry = colDef(width = 200)
-      ),
-      striped = TRUE
+        Variable = colDef(align = "left", minWidth = 200), ## use minWidth as it will scale proportionally
+        `2010` = colDef(align = "right", minWidth = 100),
+        `2015` = colDef(align = "right", minWidth = 100),
+        `2020` = colDef(align = "right", minWidth = 100))
     )
+  })
 
+
+  ## income shares ----
+  output$income_shares_header <- renderUI({
+
+    span(info_icon(tooltips$income_shares),
+         "Basic income shares for: ",
+         selected_region())
+  })
+
+  output$income_shares <- renderReactable({
+
+    ## separate into two tables to be able to nest the sub-sectors
+    table_outer <- data[["Income Shares Table"]] |>
+      filter(REGION_NAME == selected_region()) |>
+      filter(TOTAL_COLUMN) |>
+      select(REF_YEAR, TABLE_ORDER, VARIABLE, R = VALUE, `F` = FORMATTED_VALUE) |>
+      pivot_wider(names_from = "REF_YEAR", values_from = c("R", "F"))  |>
+      mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
+
+    table_inner <- data[["Income Shares Table"]] |>
+      filter(REGION_NAME == selected_region()) |>
+      filter(!TOTAL_COLUMN) |>
+      select(REF_YEAR, TABLE_ORDER, PARENT_VARIABLE, VARIABLE, FORMATTED_VALUE) |>
+      pivot_wider(names_from = "REF_YEAR", values_from = "FORMATTED_VALUE", names_prefix = "F_") |>
+      mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
+
+    reactable(table_outer,
+              defaultSorted = "TABLE_ORDER",
+              striped = TRUE,
+              pagination = FALSE,
+              theme = reactableTheme(
+                stripedColor = "#f6f9fc",
+              ),
+              ## for correct sort order for factors and formatted values,
+              ## use numeric columns in the table but have the display value come from the formatted columns
+              ## from https://github.com/glin/reactable/issues/202#issuecomment-2689390142
+              columns = list(
+                TABLE_ORDER = colDef(
+                  name = "Basic income source",
+                  align = "left",
+                  minWidth = 190,
+                  cell = function(value, index) table_outer$VARIABLE[index]
+                ),
+                R_2010 = colDef(name = "2010", align = "right", minWidth = 67, defaultSortOrder = "desc", sortNALast = TRUE, cell = function(value, index) table_outer$F_2010[index]),
+                R_2015 = colDef(name = "2015", align = "right", minWidth = 67, defaultSortOrder = "desc", sortNALast = TRUE, cell = function(value, index) table_outer$F_2015[index]),
+                R_2020 = colDef(name = "2020", align = "right", minWidth = 67, defaultSortOrder = "desc", sortNALast = TRUE, cell = function(value, index) table_outer$F_2020[index]),
+                ## hide the formatted columns, as their values are displayed in their associated numeric column
+                VARIABLE = colDef(show=F),
+                F_2010 = colDef(show = F),
+                F_2015 = colDef(show = F),
+                F_2020 = colDef(show = F)
+              ),
+              ## details for nested tables
+              details = function(index) {
+                subsectors <- table_inner|> filter(PARENT_VARIABLE == as.character(table_outer$VARIABLE[index]))
+                if(nrow(subsectors)>0) {
+                  reactable(subsectors,
+                            sortable = FALSE,
+                            borderless = TRUE,
+                            theme = reactableTheme(
+                              headerStyle = list(display = "none"),  # hide headers in the nested tables
+                              style = list("backgroundColor" = "#F3F2F1")
+                            ),
+                            columns = list(
+                              TABLE_ORDER = colDef(show = F),
+                              PARENT_VARIABLE = colDef(show = F),
+                              ## use padding to indent the first column of the nested table
+                              ## adjust the minWidth so the subsequent columns align correctly
+                              VARIABLE = colDef(style = list(paddingLeft = "60px"), minWidth = 230),
+                              F_2010 = colDef(align = "right", minWidth = 67),
+                              F_2015 = colDef(align = "right", minWidth = 67),
+                              F_2020 = colDef(align = "right", minWidth = 67)))
+                }}) ## end of reactable
+  })
+
+
+  ## jobs ----
+  output$top_5_jobs_header <- renderUI({
+
+    span(info_icon(tooltips$top_employment),
+         "Top 5 industries by number of jobs for: ",
+         selected_region())
   })
 
   output$top_5_jobs <- renderReactable({
+
     table <- data[["Jobs"]] |>
       filter(REGION_NAME == selected_region()) |>
-      select(REF_YEAR, Industry = VARIABLE, FORMATTED_VALUE) |>
-      pivot_wider(names_from = "REF_YEAR", values_from = "FORMATTED_VALUE")
+      select(REF_YEAR, Industry = VARIABLE, R = VALUE, `F` = FORMATTED_VALUE) |>
+      pivot_wider(names_from = "REF_YEAR", values_from = c("R", "F")) |>
+      mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
 
     reactable(
       table,
-      defaultColDef = colDef(html = TRUE),
-      columns = list(
-        Industry = colDef(width = 200)
+      defaultSorted = "R_2020",
+      striped = TRUE,
+      theme = reactableTheme(
+        stripedColor = "#f6f9fc",
       ),
-      striped = TRUE
-    )
-
+      defaultColDef = colDef(html = TRUE, sortNALast = TRUE, defaultSortOrder = "desc", align = "right", minWidth = 60),
+      columns = list(
+        Industry = colDef(align = "left", minWidth = 200),
+        R_2010 = colDef(name = "2010", cell = function(value, index) table$F_2010[index]),
+        R_2015 = colDef(name = "2015", cell = function(value, index) table$F_2015[index]),
+        R_2020 = colDef(name = "2020", cell = function(value, index) table$F_2020[index]),
+        F_2010 = colDef(show = F),
+        F_2015 = colDef(show = F),
+        F_2020 = colDef(show = F)))
   })
 
-  ## alternate table code ----
-  # output$summary_card <- renderUI({
-  #   if (input$choose_topic == "Population") {
-  #     header <- "Summary statistics"
-  #   } else if(input$choose_topic == "Diversity index") {
-  #     header <- "Top 5 industries by employment"
-  #   } else {
-  #     header <- "Top 5 industries by income source"
-  #   }
-  #
-  #   card(
-  #     card_header(header),
-  #     reactableOutput("summary_table")
-  #   )
-  # })
-  #
-  # output$summary_table <- renderReactable({
-  #
-  #   if (input$choose_topic == "Population") {
-  #     table <- data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region()) |> make_summary_table_output()
-  #
-  #   } else if(input$choose_topic == "Diversity index") {
-  #     table <- data[["Jobs"]] |>
-  #       filter(REGION_NAME == selected_region()) |>
-  #       select(REF_YEAR, Industry = VARIABLE, FORMATTED_VALUE) |>
-  #       pivot_wider(names_from = "REF_YEAR", values_from = "FORMATTED_VALUE")
-  #
-  #   } else {
-  #     table <- data[["Economic Base"]] |>
-  #       filter(REGION_NAME == selected_region()) |>
-  #       select(REF_YEAR, Industry = VARIABLE, FORMATTED_VALUE) |>
-  #       pivot_wider(names_from = "REF_YEAR", values_from = "FORMATTED_VALUE")
-  #   }
-  #
-  #   reactable(
-  #     table,
-  #     defaultColDef = colDef(html = TRUE),
-  #     striped = TRUE
-  #   )
 
+  ## location quotiens ----
+  output$top_5_lqs_header <- renderUI({
 
- # })
-#----
+    span(info_icon(tooltips$top_lq),
+         "Top 5 industries by location quotient for: ",
+         selected_region())
+  })
+
+  output$top_5_lqs <- renderReactable({
+
+    table <- data[["Location Quotients"]] |>
+      filter(REGION_NAME == selected_region()) |>
+      select(REF_YEAR, Industry = VARIABLE, R = VALUE, `F` = FORMATTED_VALUE) |>
+      pivot_wider(names_from = "REF_YEAR", values_from = c("R", "F")) |>
+      mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
+
+    reactable(
+      table,
+      defaultSorted = "R_2020",
+      striped = TRUE,
+      theme = reactableTheme(
+        stripedColor = "#f6f9fc",
+      ),
+      defaultColDef = colDef(html = TRUE, sortNALast = TRUE, defaultSortOrder = "desc", align = "right", minWidth = 60, ),
+      columns = list(
+        Industry = colDef(align = "left", minWidth = 200),
+        R_2010 = colDef(name = "2010", cell = function(value, index) table$F_2010[index]),
+        R_2015 = colDef(name = "2015", cell = function(value, index) table$F_2015[index]),
+        R_2020 = colDef(name = "2020", cell = function(value, index) table$F_2020[index]),
+        F_2010 = colDef(show = F),
+        F_2015 = colDef(show = F),
+        F_2020 = colDef(show = F)))
+  })
 
 
   bcsapps::bcsHeaderServer(id = 'header', links = T)
