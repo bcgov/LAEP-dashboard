@@ -14,7 +14,10 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-05-27"), "%b %d, %Y")
+last_updated = format(ymd("2025-06-03"), "%b %d, %Y")
+
+# Do you want to include google analytics tracking code
+google_tracking = F
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
 load_data = F
@@ -143,7 +146,7 @@ if (load_data) {
            MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>", FORMATTED_VALUE))
 
   ## Format Jobs - Top 5 jobs per region
-  data[["Jobs"]] <- data_orig[[2]] |>
+  jobs <- data_orig[[2]] |>
     rename_all(str_remove_all, "_TOTAL") |>
     pivot_longer(-c(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD),
                  names_to = "VARIABLE",
@@ -163,10 +166,18 @@ if (load_data) {
       TRUE ~ VARIABLE)) |>
     filter(!VALUE %in% c("-", "F")) |> ## remove missing data
     mutate(VALUE = as.numeric(VALUE),
-           FORMATTED_VALUE = label_comma()(VALUE)) |>
-    group_by(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD) |>
-    slice_max(order_by = VALUE, n = 5) |>
-    ungroup()
+           FORMATTED_VALUE = label_comma()(VALUE))
+
+  ## get top 5 jobs
+  data[["Jobs"]] <- jobs |>
+    semi_join(jobs |>
+                group_by(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD) |>
+                slice_max(order_by = VALUE, n = 5) |>
+                ungroup() |>
+                distinct(REGION_NAME, VARIABLE),
+              by = c("REGION_NAME", "VARIABLE"))
+  rm(jobs)
+
 
   ## Format Income Dependencies
   data[["Income Shares Map"]]<- data_orig[[3]] |>
@@ -189,7 +200,7 @@ if (load_data) {
         str_detect(VARIABLE, "Non employment") ~ str_replace(VARIABLE, "Non employment", "Non-employment"),
         TRUE ~ VARIABLE),
     MAP_LABEL = paste0("<strong>",REGION_NAME,"</strong><br>",
-                       str_wrap(paste0(VARIABLE," share: ", FORMATTED_VALUE), width = 40)),
+                       str_wrap(paste0(VARIABLE," share: ", FORMATTED_VALUE), width = 30)),
     MAP_LABEL = str_replace_all(MAP_LABEL, "\n", "<br>"),
     MAP_TITLE = str_wrap(paste("Basic income share from:", VARIABLE), width = 20))
 
@@ -218,7 +229,7 @@ if (load_data) {
            FORMATTED_VALUE = label_percent(accuracy = 0.01)(VALUE))
 
   ## Format Location Quotients - Top 5 industries per region
-  data[["Location Quotients"]] <- data_orig[[4]] |>
+  lq <- data_orig[[4]] |>
     rename_all(str_remove_all, "_TOTAL") |>
     pivot_longer(-c(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD),
                  names_to = "VARIABLE",
@@ -240,10 +251,17 @@ if (load_data) {
     filter(!VALUE %in% c("-", "F")) |> ## remove missing data
     mutate(VALUE = ifelse(REGION_NAME == "British Columbia", 1, as.numeric(VALUE)),
            FORMATTED_VALUE = ifelse(REGION_NAME == "British Columbia", 1, label_comma(accuracy = 0.01)(round_half_up(VALUE, digits = 2)))) |>
-    distinct(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD, VARIABLE, VALUE, FORMATTED_VALUE) |>
-    group_by(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD) |>
-    slice_max(order_by = VALUE, n = 5) |>
-    ungroup()
+    distinct(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD, VARIABLE, VALUE, FORMATTED_VALUE)
+
+  ## get top 5 lqs
+  data[["Location Quotients"]] <- lq |>
+    semi_join(lq |>
+                group_by(KEY, REGION_NAME, REF_YEAR, STATISTIC, GEO_TYPE, PARENT_RD) |>
+                slice_max(order_by = VALUE, n = 5) |>
+                ungroup() |>
+                distinct(REGION_NAME, VARIABLE),
+              by = c("REGION_NAME", "VARIABLE"))
+  rm(lq)
 
   ## save data
   saveRDS(data, here::here("app", "data", "data.rds"))
