@@ -71,34 +71,28 @@ body, h1, h2, h3, h4, h5, h6 {
 
 /* CSS that is specific to your app */
 
+/* =====================
+   Banner formatting
+   ===================== */
+
+/* display a different header based on screen width */
+span.desktop-title { display: flex; }
+span.mobile-title { display: none; }
+
+@media (max-width: 600px) {
+  span.desktop-title { display: none; }
+  span.mobile-title { display: flex; }
+}
+
 /* Required for the link list in bcsheader */
 #header-links-linkList > div > div {
   min-width: 280px;
 }
 
-/* "valuebox" formatting  */
-.bcs_vb.bslib-card.bslib-mb-spacing.html-fill-item.html-fill-container{
-  /* overflow: hidden;*/
-   background-color: var(--theme-blue-20);
-   min-width: min-content;
-}
-
-.bcs_vb.card-body.bslib-gap-spacing.html-fill-item.html-fill-container {
-  gap: 0.25rem;
-  padding-top:5px;
-  padding-bottom:0;
-
-}
 
 /* =====================
    Sidebar formatting
    ===================== */
-
-/* overall sidebar - reduce top padding*/
-.bslib-sidebar-layout>.sidebar>.sidebar-content  {
-  padding-top:10px;
-  gap:0!important;
-}
 
 /* sidebar title - reduce bottom margin/padding*/
 header.sidebar-title {
@@ -138,6 +132,22 @@ button#reset_map:hover {
         background-color: #286090; /* Bootstrap hover */
       }
 
+/* =====================
+   "valuebox" formatting
+   ===================== */
+
+.bcs_vb.bslib-card.bslib-mb-spacing.html-fill-item.html-fill-container{
+  /* overflow: hidden;*/
+   background-color: var(--theme-blue-20);
+   min-width: min-content;
+}
+
+.bcs_vb.card-body.bslib-gap-spacing.html-fill-item.html-fill-container {
+  gap: 0.25rem;
+  padding-top:5px;
+  padding-bottom:0;
+
+}
 
 /* =====================
    Fullscreen card formatting
