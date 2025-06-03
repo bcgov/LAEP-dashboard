@@ -9,7 +9,13 @@ ui <- function(req) {
       tags$link(rel = "stylesheet", type = "text/css", href = "variables.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
       tags$link(rel = "shortcut icon", href = "favicon.png"), ## to add BCGov favicon
-      bcsapps::bcsHeaderUI(id = 'header', appname = "Local Area Economic Profiles", github = "https://github.com/bcgov/LAEP-dashboard")
+      if(google_tracking){ includeHTML("www/google-analytics.html") },  ## to add GA tracking code
+      bcsapps::bcsHeaderUI(id = 'header',
+                           appname = tagList(
+                             tags$span(class = "desktop-title", "Local Area Economic Profiles - Interactive Map"),
+                             tags$span(class = "mobile-title", "LAEP")
+                           ),
+                           github = "https://github.com/bcgov/LAEP-dashboard")
       ), ## end of tags$head
 
     column(width = 12, style = "margin-top:100px",
@@ -19,6 +25,9 @@ ui <- function(req) {
 
              # sidebar ----
              sidebar = sidebar(
+               padding = c(10,24),
+               gap = 0,
+               open = list(desktop = "open", mobile = "closed"),
                title = "Economic Profile for",
                list(
                  div(
@@ -40,10 +49,10 @@ ui <- function(req) {
                    pickerInput(
                      "choose_topic",
                                "Choose Map Topic",
-                               choices = c("Population", "Diversity index", "Income shares", "Dominant basic income sources"),
+                               choices = c("Population", "Diversity index", "Basic income shares", "Dominant basic income sources"),
                                selected = "Population"),
                    conditionalPanel(
-                     condition = "input.choose_topic == 'Income shares'",
+                     condition = "input.choose_topic == 'Basic income shares'",
                      pickerInput("choose_industry",
                                  "Choose Income Source:",
                                  choices = data[["Income Shares Map"]] |> pull(VARIABLE) |> unique())),
@@ -69,7 +78,9 @@ ui <- function(req) {
                    div(style = "margin-top:25px",
                        strong("Resources:"),
                        br(),
-                       a("LAEP toolkit", href=""),
+                       a("LAEP main page", href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles"),
+                                              br(),
+                       a("LAEP toolkit", href="https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_2023_toolkit.xlsx"),
                        br(),
                        a("FAQs", href = "")),
                    div(class = "small-body",
@@ -82,6 +93,7 @@ ui <- function(req) {
              # main panel ----
              div(
                id = "Regional Profile",
+               tags$span(class = "mobile-title", h4("LAEP for: ", textOutput("profile_heading_mobile", inline = TRUE)) ),
                uiOutput("regional_profile_row1"), ## value boxes
 
                ## first row (map and summary table)
@@ -142,6 +154,9 @@ server <- function(input, output) {
   ## selected region ----
   observeEvent(selected_region(), {
 
+    ## if the selected region is British Columbia (i.e., reset map clicked)
+    ##   update choose_RD selected value to all regional disticts
+    ##   update choose_LA selected value to all local areas, plus set choices to all available LAs
     if(selected_region() == "British Columbia") {
       updatePickerInput(
         inputId = "choose_RD",
@@ -243,13 +258,23 @@ server <- function(input, output) {
     updatePickerInput(
       inputId = "choose_LA",
       selected = "All local areas")
+
+    ## reset map zoom
+    bbox <- st_bbox(map_rds)
+    leafletProxy("map") |>
+      fitBounds(lng1 = bbox$xmin[[1]],
+                lat1 = bbox$ymin[[1]],
+                lng2 = bbox$xmax[[1]],
+                lat2 = bbox$ymax[[1]])
+
+
   })
 
 
   # outputs ----
 
   ## profile header ----
-  output$profile_heading <- renderText({
+  output$profile_heading <- output$profile_heading_mobile <- renderText({
     selected_region()
   })
 
@@ -280,7 +305,7 @@ server <- function(input, output) {
     } else if(input$choose_topic == "Diversity index") {
       df <- data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Diversity index")
 
-    } else if(input$choose_topic == "Income shares") {
+    } else if(input$choose_topic == "Basic income shares") {
       df <- data[["Income Shares Map"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_industry)
 
     } else {
@@ -405,7 +430,7 @@ server <- function(input, output) {
   output$top_5_jobs_header <- renderUI({
 
     span(info_icon(tooltips$top_employment),
-         "Top 5 industries by number of jobs for: ",
+         "Top industries by number of jobs for: ",
          selected_region())
   })
 
@@ -416,6 +441,16 @@ server <- function(input, output) {
       select(REF_YEAR, Industry = VARIABLE, R = VALUE, `F` = FORMATTED_VALUE) |>
       pivot_wider(names_from = "REF_YEAR", values_from = c("R", "F")) |>
       mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
+
+    if(nrow(table) == 0) {
+      table <- data.frame("Industry" = "This region falls entirely within First Nations boundaries. The data is unavailable as BC Stats did not receive consent to release it.",
+                          "R_2010" = "",
+                          "R_2015" = "",
+                          "R_2020" = "",
+                          "F_2010" = "",
+                          "F_2015" = "",
+                          "F_2020" = "")
+    }
 
     reactable(
       table,
@@ -440,7 +475,7 @@ server <- function(input, output) {
   output$top_5_lqs_header <- renderUI({
 
     span(info_icon(tooltips$top_lq),
-         "Top 5 industries by location quotient for: ",
+         "Top industries by location quotient for: ",
          selected_region())
   })
 
@@ -451,6 +486,16 @@ server <- function(input, output) {
       select(REF_YEAR, Industry = VARIABLE, R = VALUE, `F` = FORMATTED_VALUE) |>
       pivot_wider(names_from = "REF_YEAR", values_from = c("R", "F")) |>
       mutate(across(starts_with("F"), ~ifelse(is.na(.x), "", .x)))
+
+    if(nrow(table) == 0) {
+      table <- data.frame("Industry" = "This region falls entirely within First Nations boundaries. The data is unavailable as BC Stats did not receive consent to release it.",
+                          "R_2010" = "",
+                          "R_2015" = "",
+                          "R_2020" = "",
+                          "F_2010" = "",
+                          "F_2015" = "",
+                          "F_2020" = "")
+    }
 
     reactable(
       table,
