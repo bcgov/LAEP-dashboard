@@ -34,21 +34,21 @@ stat_transform <- function(x, rev = FALSE) {
 ##  numeric or categorical
 add_legend <- function(map, df, pal) {
 
+  ## determine map title
+  if("MAP_TITLE" %in% names(df)) {
+    title <- unique(df$MAP_TITLE)
+    lab_formatting <- label_percent(accuracy = 1)
+
+  } else {
+    title = unique(df$VARIABLE)
+    lab_formatting <- label_comma()
+  }
+
+  title <- HTML("<div style='text-align:left; width:135px; line-height:1.125rem;'>",
+                title, "</div>")
+
   ## only add legend if more than one row of data
   if(nrow(df) > 1) {
-
-    ## determine map title
-    if("MAP_TITLE" %in% names(df)) {
-      title <- unique(df$MAP_TITLE)
-      lab_formatting <- label_percent(accuracy = 1)
-
-    } else {
-      title = unique(df$VARIABLE)
-      lab_formatting <- label_comma()
-    }
-
-    title <- HTML("<div style='text-align:left; width:135px; line-height:1.125rem;'>",
-                  title, "</div>")
 
     ## numeric legend
     if(is.numeric(df$VALUE)) {
@@ -78,6 +78,9 @@ add_legend <- function(map, df, pal) {
                     labels = lapply(paste("<span style='display: inline-block; width: 120px;'>", legend_labels, "</span>"), HTML),
                     colors = legend_colors)
       }
+  } else {
+      map <- map |>
+        addControl(div(strong(title), df$FORMATTED_VALUE), position = "topright")
     }
 
   map
