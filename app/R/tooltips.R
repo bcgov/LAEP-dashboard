@@ -22,7 +22,7 @@ tooltips = list(
 
   `Diversity index` = HTML("The diversity index (DI) measures whether a region has many or few external income sources.<br><br>
                             A region entirely dependent on one income source has a DI of zero.
-                            A region equally dependent on all of the defined income sources has a DI of 100.<br><br>
+                            A region equally dependent on all the defined income sources has a DI of 100.<br><br>
                             In general, the DI in B.C. is between 50 and 80.<br><br>Source: BC Stats"),
 
   summary_statistics = HTML("The reference years are listed as 2010, 2015, and 2020 because the
