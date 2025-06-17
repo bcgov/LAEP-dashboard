@@ -1,4 +1,4 @@
-# Copyright 2023 Province of British Columbia
+# Copyright 2025 Province of British Columbia
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,8 @@ pacman::p_load(shiny, bslib, plotly, tidyverse, htmltools,
                reactable, shinyjs, shinyWidgets, fs, janitor,
                snakecase, leaflet, bcmaps, rmapshaper, sf, scales,
                openxlsx2, ggiraph, patchwork, shinycssloaders,
-               bcsapps, bcstatslinks)
+               bcsapps, bcstatslinks, tippy)
 
-
-# make the info for popover icons
-info_icon = function(tooltip, color = NULL) {
-  if(!is.null(color)) { style = paste0("color:", color) }
-  else { style = "" }
-  popover(icon("info-circle", style=style), tooltip)
-}
 
 # function for cleaning region names
 ## necessary for the region names from bcmaps to match the data
@@ -33,7 +26,6 @@ clean_regions = function(x) {
   x |>
     str_replace("Regional District( of)?", "") |>
     str_replace("Region", "") |>
-   # str_replace("RD", "") |>
     str_replace(" - ", "-") |>
     str_replace("\\((Unincorporated)\\)", "") |>
     str_replace("qathet", "Powell River") |>
@@ -42,20 +34,21 @@ clean_regions = function(x) {
     str_squish()
 }
 
-# make a custom value box for the first row of the Regional Profile page
-make_value_box = function(df, tooltip = NULL) {
-  bslib::card(
-    class = "bcs_vb",
-    card_body(
-      class = "bcs_vb",
-      if(is.null(tooltip)) { span(icon(df$ICON), df$VARIABLE) }
-      else { span(icon(df$ICON), df$VARIABLE, info_icon(tooltip)) },
-      h4(df$FORMATTED_VALUE)
-    )
-  )
+
+# make the popovers for the info icons
+info_icon = function(tooltip, color = NULL) {
+  if(!is.null(color)) { style = paste0("color:", color) }
+  else { style = "" }
+  popover(
+    span(icon("info-circle", style = style), tabindex = "0"),
+    tooltip,
+    options = list(trigger = "focus",  ## this makes it so the tooltip will close when user clicks elsewhere
+                   delay = list(hide = 100)))  ## delay closing (in ms) so that links can still work
 }
 
-make_summary_table_output = function(df=toy_df) {
+
+## format the data for the summary table
+make_summary_table_output = function(df) {
 
   df |> select(REF_YEAR, VARIABLE, VALUE, FORMATTED_VALUE) |>
     group_by(VARIABLE) |>
@@ -68,7 +61,6 @@ make_summary_table_output = function(df=toy_df) {
                              TRUE ~  paste0(FORMATTED_VALUE, "<br>(", dir, label_percent()(abs(change)),  ")"))) |>
     select(REF_YEAR, Variable = VARIABLE, final) |>
     pivot_wider(names_from = "REF_YEAR", values_from = "final")
-
 }
 
-nicetable = function(df, ...) {reactable(df, ..., striped = TRUE, highlight = T)}
+

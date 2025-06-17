@@ -1,3 +1,19 @@
+/*
+# Copyright 2025 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+*/
+
+
+
 
 /*** TYPOGRAPHY ***/
 /* =====================
@@ -89,20 +105,16 @@ span.mobile-title { display: none; }
   min-width: 280px;
 }
 
-
 /* =====================
    Sidebar formatting
    ===================== */
 
-/* sidebar title - reduce bottom margin/padding*/
-header.sidebar-title {
-  margin-bottom:10px !important;
-  padding-bottom:5px !important;
-}
-
-/*region title on sidebar - increase bottom margin*/
-h4.sidebar-region{
-  margin-bottom:1rem;
+/*boxes in sidebar around filters*/
+.sidebar_filters {
+  border: 1px solid #007bc2;
+  border-radius: 3px;
+  padding: 10px;
+  margin:10px 0;
 }
 
 /*picker input formatting - reduce padding*/
@@ -114,6 +126,16 @@ button.btn.dropdown-toggle.btn-light {
 .bootstrap-select .dropdown-toggle {
    border-radius: 5px;
    border-color: #337ab7;
+}
+
+/*picker input formatting - change label to bold*/
+.control-label {
+  font-weight: 700;
+}
+
+/*picker input formatting - adjust max height for dropdown menu*/
+.dropdown-menu.show {
+  max-height: 400px !important;
 }
 
 /*action button formatting*/
@@ -133,25 +155,14 @@ button#reset_map:hover {
       }
 
 /* =====================
-   "valuebox" formatting
-   ===================== */
-
-.bcs_vb.bslib-card.bslib-mb-spacing.html-fill-item.html-fill-container{
-  /* overflow: hidden;*/
-   background-color: var(--theme-blue-20);
-   min-width: min-content;
-}
-
-.bcs_vb.card-body.bslib-gap-spacing.html-fill-item.html-fill-container {
-  gap: 0.25rem;
-  padding-top:5px;
-  padding-bottom:0;
-
-}
-
-/* =====================
    Fullscreen card formatting
    ===================== */
+
+/*expand button - make always visible*/
+button.bslib-full-screen-enter.badge.rounded-pill {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
 /*card formatting - offset top due to custom bcstats header */
 .bslib-card[data-full-screen="true"] {
@@ -163,12 +174,11 @@ button#reset_map:hover {
   margin-top:75px;
 }
 
-
 /* =====================
    Leaflet attribution styling
    ===================== */
 
-/*there doesn't seem to be a way to move the leaflet attribution, so remove and create a new one with the styles of the original*/
+/*cannot move the leaflet attribution, so remove and create a new one with the styles of the original*/
 .info.legend.leaflet-control:has(.leaflet-control-attribution) {
   padding: 0 !important;
   margin:0!important;
@@ -184,9 +194,15 @@ button#reset_map:hover {
 }
 
 /* =====================
-   tooltip styling
+   tooltip/popover styling
    ===================== */
-   /*style tooltip on income source radio button to look like a popover*/
+
+/*bring popovers to the front*/
+.popover {
+  z-index: 100001;
+}
+
+/* sidebar tooltip - style tooltip on income source radio button to look like a popover*/
 .tooltip-inner {
       background-color: #fff;
       color: var(--typography-color-primary);
@@ -198,27 +214,28 @@ button#reset_map:hover {
       text-align: left;
       box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
 }
-
-
-/* =====================
-   miscellaneous
-   ===================== */
-/*radio button*/
-div#selected_year {
-    margin-bottom: 0;
-}
-
-/*adjust max height for choose topic dropdown*/
-.dropdown-menu.show {
-  max-height: 400px !important;
-}
-
-/*bring popovers to the front*/
-.popover {
-  z-index: 100001;
-}
-
+ /* sidebar tooltip - make the arrow on the tooltip white*/
 .bs-tooltip-end .tooltip-arrow::before, .bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
   border-right-color:white;
   border-width:0.5rem;
 }
+
+/* reactable tooltips - style tooltips to look like the other tooltips/popovers*/
+.tippy-content {
+  color: #000; /*to force the correct weight, color is washed out so using black instead of default color*/
+  text-align: left;
+  font-weight:100;
+  font-size: 0.875rem;
+  font-style: normal;
+}
+
+.tippy-tooltip {
+  background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      padding: 10px;
+      max-width: 250px;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+
+

@@ -1,4 +1,4 @@
-# Copyright 2023 Province of British Columbia
+# Copyright 2025 Province of British Columbia
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-06-03"), "%b %d, %Y")
+last_updated = format(ymd("2025-06-17"), "%b %d, %Y")
 
 # Do you want to include google analytics tracking code
 google_tracking = F
@@ -91,27 +91,27 @@ if (load_data) {
                  names_to = "VARIABLE",
                  names_transform = ~snakecase::to_any_case(.x, "sentence"),
                  values_to = "VALUE") |>
-    mutate(VARIABLE = ifelse(VARIABLE == "Total income", "Total income (millions)", VARIABLE)) |>
     mutate(
       FORMATTED_VALUE = case_when(
         VARIABLE == "Population" ~ label_comma(accuracy = 1)(VALUE),
         VARIABLE == "Total jobs" ~ label_comma(accuracy = 1)(VALUE),
         VARIABLE == "Average employment income" ~ label_dollar(suffix = "/yr")(VALUE),
-        VARIABLE == "Total income (millions)" ~ label_dollar()(VALUE),
+        VARIABLE == "Total income" ~ label_dollar(suffix = " million")(VALUE),
         VARIABLE == "Diversity index" ~ label_comma(accuracy = 0.1)(VALUE)),
       ICON = case_when(
         VARIABLE == "Population" ~ "earth-americas",
         VARIABLE == "Total jobs" ~ "user-tie",
         VARIABLE == "Average employment income" ~ "money-bills",
-        VARIABLE == "Total income (millions)" ~ "hand-holding-dollar",
+        VARIABLE == "Total income" ~ "hand-holding-dollar",
         VARIABLE == "Diversity index" ~ "chart-pie"))
 
   ## Add map labels
   map_labels <- bind_rows(
     data[["Descriptive Stats"]] |>
-      filter(VARIABLE != "Diversity index") |>
       group_by(REGION_NAME, REF_YEAR) |>
-      mutate(MAP_LABEL = paste0("<strong>", REGION_NAME, "</strong><br>", paste(paste(VARIABLE, ": ", FORMATTED_VALUE), collapse = "<br>"))) |>
+      mutate(MAP_LABEL = paste0("<strong>", REGION_NAME, "</strong><br>", paste(paste0(VARIABLE, ": ", FORMATTED_VALUE), collapse = "<br>"))) |>
+      ## to add an intermediate title after population stat, use str_replace
+      mutate(MAP_LABEL = str_replace_all(MAP_LABEL, "Total jobs", "<br><span style = 'font-weight:700'>Other regional statistics</span><br>Total jobs")) |>
       ungroup() |>
       filter(VARIABLE == "Population") |>
       select(REGION_NAME, REF_YEAR, VARIABLE, MAP_LABEL),

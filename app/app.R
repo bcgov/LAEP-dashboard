@@ -1,7 +1,17 @@
+# Copyright 2025 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
 
-bcs_vb_theme <- value_box_theme(bg = "#D8EAFD", fg = "#2D2D2D")
 
-# Define UI for application that draws a histogram
+# Define UI
 ui <- function(req) {
   tagList(
     tags$head(
@@ -12,6 +22,7 @@ ui <- function(req) {
       if(google_tracking){ includeHTML("www/google-analytics.html") },  ## to add GA tracking code
       bcsapps::bcsHeaderUI(id = 'header',
                            appname = tagList(
+                             ## use a smaller title if viewed on mobile
                              tags$span(class = "desktop-title", "Local Area Economic Profiles - Interactive Map"),
                              tags$span(class = "mobile-title", "LAEP")
                            ),
@@ -19,82 +30,110 @@ ui <- function(req) {
       ), ## end of tags$head
 
     column(width = 12, style = "margin-top:100px",
+
            page_sidebar(
              full_screen = TRUE,
              window_title = "Local Area Economic Profiles", ## browser tab name
 
              # sidebar ----
              sidebar = sidebar(
-               padding = c(10,24),
                gap = 0,
-               open = list(desktop = "open", mobile = "closed"),
-               title = "Economic Profile for",
+               open = list(desktop = "open", mobile = "closed"), ## start with the sidebar closed if viewing on mobile
                list(
                  div(
-                   id = "choose_region_div",
-                   h4(class = "sidebar-region", textOutput("profile_heading")),
-                   radioGroupButtons("choose_level",
-                                     choices = c("Regional Districts" = "RD", "Local Areas" = "LA"),
-                                     selected = "RD", direction = "vertical",
-                                     justified = TRUE,
-                                     width = "100%"),
-                   pickerInput("choose_RD",
-                               "Choose Regional District",
-                               choices = rd_la_lookup |> distinct(RD) |> pull(),
-                               selected = "All regional districts"),
-                   pickerInput("choose_LA",
-                               "Choose Local Area",
-                               choices = c("All local areas", rd_la_lookup |> distinct(LA) |> pull()),
-                               selected = "All local areas"),
-                   pickerInput(
-                     "choose_topic",
-                               "Choose Map Topic",
-                               choices = c("Population", "Diversity index", "Basic income shares", "Dominant basic income sources"),
-                               selected = "Population"),
-                   conditionalPanel(
-                     condition = "input.choose_topic == 'Basic income shares'",
-                     pickerInput("choose_industry",
-                                 "Choose Income Source:",
-                                 choices = data[["Income Shares Map"]] |> pull(VARIABLE) |> unique())),
-                   conditionalPanel(
-                     condition = "input.choose_topic == 'Dominant basic income sources'",
-                     tooltip(
-                       id = "popover",
-                       placement = "right",
-                       radioGroupButtons("choose_source",
-                                         choices = c("All basic income sources" = "Dominant basic income source",
-                                                     "Private sector sources only" = "Dominant private sector basic income source"),
-                                         selected = "Dominant basic income source",
-                                         direction = "vertical",
-                                         justified = TRUE,
-                                         width = "100%"),
-                       HTML('The dominant basic income source is the largest source of external income flowing into the region.
-                            Choose "All basic income sources" to show the overall dominant source for
-                            each region, and "Private sector sources only" to find the most important basic
-                            income source related to a private sector industry.'))),
-                   actionButton("reset_map",
-                                label = "Reset map view",
-                                icon = icon("arrow-rotate-right")),
-                   div(style = "margin-top:25px",
+                   id = "sidebar_div",
+                   strong("Filters:"),
+
+                   div(id = "boundary_type",
+                       class = "sidebar_filters",
+                       pickerInput("choose_level",
+                                   "Choose Boundary Type",
+                                   choices = c("Regional Districts" = "RD", "Local Areas" = "LA"),
+                                   selected = "RD")),
+
+                   div(id = "region",
+                       class = "sidebar_filters",
+                       pickerInput("choose_RD",
+                                   "Choose Regional District",
+                                   choices = rd_la_lookup |> distinct(RD) |> pull(),
+                                   selected = "All regional districts"),
+                       pickerInput("choose_LA",
+                                   "Choose Local Area",
+                                   choices = c("All local areas", rd_la_lookup |> distinct(LA) |> pull()),
+                                   selected = "All local areas"),
+                       actionButton("reset_map",
+                                    label = "Reset map view to B.C.",
+                                    icon = icon("arrow-rotate-right"))),
+
+                   div(id = "topic",
+                       class = "sidebar_filters",
+                       pickerInput("choose_topic",
+                                   "Choose Map Topic",
+                                   choices = c("Population", "Diversity index", "Basic income shares", "Dominant basic income sources"),
+                                   selected = "Population"),
+                       conditionalPanel(
+                         condition = "input.choose_topic == 'Basic income shares'",
+                         pickerInput("choose_industry",
+                                     "Choose Income Source:",
+                                     choices = data[["Income Shares Map"]] |> pull(VARIABLE) |> unique())),
+                       conditionalPanel(
+                         condition = "input.choose_topic == 'Dominant basic income sources'",
+                         tooltip(
+                           id = "popover",
+                           placement = "right",
+                           radioGroupButtons("choose_source",
+                                             choices = c("All basic income sources" = "Dominant basic income source",
+                                                         "Private sector sources only" = "Dominant private sector basic income source"),
+                                             selected = "Dominant basic income source",
+                                             direction = "vertical",
+                                             justified = TRUE,
+                                             width = "100%"),
+                           HTML('The dominant basic income source is the largest source of external income flowing into the region.
+                                 Choose "All basic income sources" to show the overall dominant source for
+                                 each region, and "Private sector sources only" to find the most important basic
+                                 income source related to a private sector industry.')))),
+
+                   div(id = "resources",
+                       style = "margin-top:25px",
                        strong("Resources:"),
                        br(),
-                       a("LAEP main page", href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles"),
-                                              br(),
-                       a("LAEP toolkit", href="https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_2023_toolkit.xlsx"),
+                       a("LAEP main page",
+                         href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles"),
+                       br(),
+                       a("LAEP toolkit",
+                         href="https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_2023_toolkit.xlsx"),
                        br(),
                        a("FAQs", href = "")),
-                   div(class = "small-body",
+
+                   div(id = "feedback",
+                       style = "margin-top:25px",
+                       strong("Feedback:"),
+                       br(),
+                       a("Let us know how we can improve",
+                         href = "https://dpdd.atlassian.net/servicedesk/customer/portal/12")
+                       ),
+
+                   div(id = "update_date",
+                       class = "small-body",
                        style = "margin-top:25px",
                        HTML("Last updated:", last_updated))
-                   ) ## end of choose_region_div
+
+                   ) ## end of sidebar_div
                  ) ## end of list
                ), ## end of sidebar
 
              # main panel ----
              div(
-               id = "Regional Profile",
-               tags$span(class = "mobile-title", h4("LAEP for: ", textOutput("profile_heading_mobile", inline = TRUE)) ),
-               uiOutput("regional_profile_row1"), ## value boxes
+               id = "main_panel_div",
+
+               ## intro
+               h4("Economic Profile for", textOutput("profile_heading", inline = TRUE)),
+               span(HTML("This dashboard provides economic insights for regional districts and local areas across British Columbia.
+                         Use the dropdown menus or interactive map to explore economic diversity and income dependencies
+                         in your local community. Selecting a region — either from the dropdowns or the map — will automatically
+                         update the dashboard with relevant data for that area.<br>
+                         For deeper insights, check out the Local Area Economic Profiles' main page on the <a href='https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles'>BC Stats website.</a>")),
+                br(),br(),
 
                ## first row (map and summary table)
                layout_column_wrap(
@@ -104,34 +143,33 @@ ui <- function(req) {
                         div(
                           style = "display: flex; align-items: center; gap: 1rem;",
                           tags$label("Select Year:"),
-                          radioButtons(
+                          radioGroupButtons(
                             inputId = "selected_year",
                             label = NULL,
                             choices = c("2010", "2015", "2020"),
-                            selected = "2020",
-                            inline = TRUE))),
+                            selected = "2020"))),
                       card_body(leafletOutput("map"))),
                  card(full_screen = TRUE,
                       card_header(uiOutput("summary_table_header")),
                       card_body(reactableOutput("summary_table")))),
 
                ## second row (three tables)
-               layout_columns(
-                 ## left column (income shares table)
-                 card(full_screen = TRUE,
-                      card_header(uiOutput("income_shares_header")),
-                      card_body(reactableOutput("income_shares"))),
+               accordion(
+                 open = FALSE,
+                 accordion_panel(
+                   title = uiOutput("income_shares_header"),
+                   value = "income_share_card",
+                   reactableOutput("income_shares")),
+                 accordion_panel(
+                   title =uiOutput("top_5_jobs_header"),
+                   value = "top_5_jobs_card",
+                   reactableOutput("top_5_jobs")),
+                 accordion_panel(
+                   title =uiOutput("top_5_lqs_header"),
+                   value = "top_5_lq_card",
+                   reactableOutput("top_5_lqs")))
 
-                 ## right column (top 5 jobs and top 5 lq tables)
-                 layout_columns(
-                   card(full_screen = TRUE,
-                        card_header(uiOutput("top_5_jobs_header")),
-                        card_body(reactableOutput("top_5_jobs"))),
-                   card(full_screen = TRUE,
-                        card_header(uiOutput("top_5_lqs_header")),
-                        card_body(reactableOutput("top_5_lqs"))),
-                   col_widths = c(12,12)))
-               ) ## end of main panel div
+               ) ## end of main_panel_div
              ) ## end of page sidebar
            ), ## end of column
 
@@ -139,7 +177,7 @@ ui <- function(req) {
     ) ## end of taglist
 }
 
-# Define server logic required to draw a histogram
+# Define server logic
 server <- function(input, output) {
 
   # reactive values ----
@@ -155,7 +193,7 @@ server <- function(input, output) {
   observeEvent(selected_region(), {
 
     ## if the selected region is British Columbia (i.e., reset map clicked)
-    ##   update choose_RD selected value to all regional disticts
+    ##   update choose_RD selected value to all regional districts
     ##   update choose_LA selected value to all local areas, plus set choices to all available LAs
     if(selected_region() == "British Columbia") {
       updatePickerInput(
@@ -205,15 +243,12 @@ server <- function(input, output) {
   observeEvent(input$choose_RD, {
 
     ## if the choose_RD drop down is changed, update the selected region
-    ## if choose_RD = All RDs -> BC
-    ## else if choose_RD != All RDs, but choose_LA = All LAs -> input$choose_RD
-    ## else -> don't update the selected_region, as the value changed due to a change in the selected LA
+    ## if choose_RD = All RDs -> selected_region = BC
+    ## else -> selected_region = choose_RD
     if(input$choose_RD == "All regional districts") {
       selected_region("British Columbia")
-    } else if (input$choose_LA == "All local areas") {
-      selected_region(input$choose_RD)
     } else {
-      ## do nothing
+      selected_region(input$choose_RD)
     }
   })
 
@@ -222,9 +257,9 @@ server <- function(input, output) {
   observeEvent(input$choose_LA, {
 
     ## if the choose_LA drop down is changed, update the selected region
-    ## if choose_RD = All RDs -> BC
-    ## else if choose_RD != All RDs, but choose_LA = All LAs -> input$choose_RD
-    ## else -> input$choose_LA
+    ## if choose_RD = All RDs -> selected_region = BC
+    ## else if choose_RD != All RDs, but choose_LA = All LAs -> selected_region = choose_RD
+    ## else -> selected_region = choose_LA
     if(input$choose_RD == "All regional districts" & input$choose_LA == "All local areas") {
       selected_region("British Columbia")
     } else if (input$choose_LA == "All local areas") {
@@ -243,7 +278,7 @@ server <- function(input, output) {
   })
 
 
-  ## reset map ----
+  ## reset map button ----
   observeEvent(input$reset_map, {
 
     # update selected region
@@ -254,7 +289,7 @@ server <- function(input, output) {
       inputId = "choose_RD",
       selected = "All regional districts")
 
-    ## update la dropdown#
+    ## update la dropdown
     updatePickerInput(
       inputId = "choose_LA",
       selected = "All local areas")
@@ -266,8 +301,6 @@ server <- function(input, output) {
                 lat1 = bbox$ymin[[1]],
                 lng2 = bbox$xmax[[1]],
                 lat2 = bbox$ymax[[1]])
-
-
   })
 
 
@@ -278,20 +311,6 @@ server <- function(input, output) {
     selected_region()
   })
 
-
-  ## summary boxes ----
-  output$regional_profile_row1 = renderUI({
-
-    df <- data[["Descriptive Stats"]] |> filter(REGION_NAME == selected_region(), REF_YEAR == 2020)
-
-    div(
-      layout_column_wrap(width=1/5,
-                         fill = T,
-                         !!!map(df$VARIABLE,
-                                ~make_value_box(df |> filter(VARIABLE == .x),
-                                                tooltips[[.x]]))
-      ))
-  })
 
   ## map ----
   output$map = renderLeaflet({
@@ -343,7 +362,11 @@ server <- function(input, output) {
       ),
       defaultColDef = colDef(html = TRUE),
       columns = list(
-        Variable = colDef(align = "left", minWidth = 200), ## use minWidth as it will scale proportionally
+        Variable = colDef(align = "left", minWidth = 200,## use minWidth as it will scale proportionally
+                          cell = function(value) {  ## use tippy package to add tooltips
+                            div(style = "text-decoration: underline; text-decoration-style: dotted; cursor: help",
+                                tippy(value, tooltip = tooltips[value], theme = "light"))
+                          }),
         `2010` = colDef(align = "right", minWidth = 100),
         `2015` = colDef(align = "right", minWidth = 100),
         `2020` = colDef(align = "right", minWidth = 100))
