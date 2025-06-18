@@ -186,6 +186,10 @@ server <- function(input, output) {
   ## set the initial selected region to British Columbia
   selected_region <- reactiveVal("British Columbia")
 
+  ## ignore_choose_rd ----
+  ## reactive value for tracking when not to update selected_region via choose_RD
+  ignore_choose_rd <- reactiveVal(FALSE)
+
 
   # observe events ----
 
@@ -224,12 +228,16 @@ server <- function(input, output) {
     ## update the choose_RD selected value to the RD which contains the LA
     ## update the choose_La choices to the LAs available in the associated RD, plus set the choose_LA selected to the selected region
     if(selected_region() %in% rd_la_lookup$LA) {
-      # print(paste("mapclick LA:", selected_region()))
+
       new_rd <- rd_la_lookup |> filter(LA == selected_region() & RD != "All regional districts") |> pull(RD)
+
+      if(new_rd != input$choose_RD) {
+      ignore_choose_rd(TRUE) ## set to true so that updating choose_RD won't update selected_region
 
       updatePickerInput(
         inputId = "choose_RD",
         selected = new_rd)
+      }
 
       updatePickerInput(
         inputId = "choose_LA",
@@ -243,9 +251,12 @@ server <- function(input, output) {
   observeEvent(input$choose_RD, {
 
     ## if the choose_RD drop down is changed, update the selected region
-    ## if choose_RD = All RDs -> selected_region = BC
+    ## if ignore_chose_rd = TRUE set to false and do nothing more
+    ## else if choose_RD = All RDs -> selected_region = BC
     ## else -> selected_region = choose_RD
-    if(input$choose_RD == "All regional districts") {
+    if (ignore_choose_rd()) {
+      ignore_choose_rd(FALSE) ## reset to FALSE
+    } else if(input$choose_RD == "All regional districts") {
       selected_region("British Columbia")
     } else {
       selected_region(input$choose_RD)
@@ -315,20 +326,32 @@ server <- function(input, output) {
   ## map ----
   output$map = renderLeaflet({
 
-    req(input$choose_level, input$choose_RD, input$choose_LA, input$choose_topic)
+    req(input$choose_level, input$choose_RD, input$choose_LA, input$choose_topic, input$selected_year)
 
     ## determine which stats to map
-    if (input$choose_topic == "Population") {
-      df <- data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Population")
+    # Check if current inputs match the default config
+    is_default <- identical(input$choose_level, default_map_inputs$choose_level) &&
+      identical(input$choose_RD, default_map_inputs$choose_RD) &&
+      (is.null(input$choose_LA) || input$choose_LA == "") &&
+      identical(input$choose_topic, default_map_inputs$choose_topic) &&
+      identical(input$selected_year, default_map_inputs$selected_year)
+
+    df <- if (is_default) {
+      default_map_data
+
+    } else if (input$choose_topic == "Population") {
+      data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Population")
 
     } else if(input$choose_topic == "Diversity index") {
-      df <- data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Diversity index")
+      data[["Descriptive Stats"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == "Diversity index")
 
     } else if(input$choose_topic == "Basic income shares") {
-      df <- data[["Income Shares Map"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_industry)
+      req(input$choose_industry)
+      data[["Income Shares Map"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_industry)
 
     } else {
-      df <- data[["Dominant Income Sources"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_source)
+      req(input$choose_source)
+      data[["Dominant Income Sources"]] |> filter(REF_YEAR == input$selected_year, VARIABLE == input$choose_source)
     }
 
     ## make the map
@@ -336,7 +359,14 @@ server <- function(input, output) {
              input$choose_RD,
              input$choose_LA,
              stat_data = df)
-    })
+    }) |>
+    bindCache(input$choose_level,
+              input$choose_RD,
+              input$choose_LA,
+              input$choose_topic,
+              input$selected_year,
+              input$choose_industry,
+              input$choose_source)
 
 
   ## summary table ----
@@ -349,9 +379,15 @@ server <- function(input, output) {
 
   output$summary_table <- renderReactable({
 
-    table <- data[["Descriptive Stats"]] |>
-      filter(REGION_NAME == selected_region()) |>
-      make_summary_table_output()
+    req(selected_region())
+
+    table <- if (selected_region() == "British Columbia") {
+      default_table_data
+    } else {
+      data[["Descriptive Stats"]] |>
+        filter(REGION_NAME == selected_region()) |>
+        make_summary_table_output()
+    }
 
     reactable(
       table,
@@ -371,7 +407,8 @@ server <- function(input, output) {
         `2015` = colDef(align = "right", minWidth = 100),
         `2020` = colDef(align = "right", minWidth = 100))
     )
-  })
+  }) |>
+    bindCache(selected_region())
 
 
   ## income shares ----
@@ -494,7 +531,7 @@ server <- function(input, output) {
   })
 
 
-  ## location quotiens ----
+  ## location quotients ----
   output$top_5_lqs_header <- renderUI({
 
     span(info_icon(tooltips$top_lq),
