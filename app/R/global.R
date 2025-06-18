@@ -14,7 +14,7 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-06-17"), "%b %d, %Y")
+last_updated = format(ymd("2025-06-18"), "%b %d, %Y")
 
 # Do you want to include google analytics tracking code
 google_tracking = F
@@ -362,6 +362,27 @@ map_rds_clipped<- readRDS(here::here(ifelse(is_local, "app", "."), "data", "map_
 
 ## tooltips
 tooltips = source(here::here(ifelse(is_local, "app", "."), "R", "tooltips.R"))$value
+
+## pre-filter data on app load
+
+### define default inputs
+default_map_inputs <- list(
+  choose_level = "RD",
+  choose_RD = "Metro Vancouver",
+  choose_LA = NULL,  # or "" if you use an empty string for 'All'
+  choose_topic = "Population",
+  selected_year = 2021
+)
+
+default_table_region <- "British Columbia"
+
+# Pre-filtered dataset
+default_map_data <- data[["Descriptive Stats"]] |>
+  filter(REF_YEAR == default_map_inputs$selected_year, VARIABLE == "Population")
+
+default_table_data <- data[["Descriptive Stats"]] |>
+  filter(REGION_NAME == default_table_region) |>
+  make_summary_table_output()
 
 
 
