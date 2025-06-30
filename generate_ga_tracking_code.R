@@ -6,7 +6,7 @@ code <- paste0(
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
-    gtag('set', { 'page_title': 'LAEP' }); // update with dashboard title
+    gtag('set', { 'page_title': '",config::get("ga_page_title"),"' }); // dashboard title
 
     gtag('config', '", config::get("ga_tracking_id"), "'); // bcstats
     </script>")
