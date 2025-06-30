@@ -14,7 +14,7 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-06-18"), "%b %d, %Y")
+last_updated = format(ymd("2025-06-24"), "%b %d, %Y")
 
 # Do you want to include google analytics tracking code
 google_tracking = F
@@ -24,7 +24,7 @@ load_data = F
 
 # Excel toolkit file name
 ## note path will be rootfolder/data
-xl_filename = "Local Area Economic Profiles 2024 Toolkit V3.xlsx"
+xl_filename = "Local Area Economic Profiles 2025 Toolkit.xlsx"
 
 # LA shape file name
 ## note path will be rootfolder/data
@@ -59,8 +59,8 @@ industry_colors = c(
 if (load_data) {
   source(here::here("app", "R", "functions.R"))
 
-  sheets <- c("Descriptive Stats", "Jobs", "Income Dependencies", "Location Quotients")
-  start_row <- c(3, 5, 5, 5)
+  sheets <- c("Descriptive Stats", "Jobs", "Income Dependencies", "Location Quotients", "Avg Incomes")
+  start_row <- c(3, 5, 5, 5, 5)
 
   data_orig = map2(sheets,
                    start_row,
@@ -83,7 +83,11 @@ if (load_data) {
   ## Format Descriptive Stats
   data[["Descriptive Stats"]] <- data_orig[[1]] |>
     select(KEY, REGION_NAME, REF_YEAR, GEO_TYPE, PARENT_RD, POPULATION, TOTAL_JOBS,
-           AVERAGE_EMPLOYMENT_INCOME, TOTAL_INCOME = TOTAL_INCOME_M, DIVERSITY_INDEX) |>
+           TOTAL_INCOME = TOTAL_INCOME_M, DIVERSITY_INDEX) |>
+    left_join(data_orig[[5]] |>  select(KEY, REGION_NAME, REF_YEAR, AVERAGE_EMPLOYMENT_INCOME = TOTAL),
+              by = c("KEY", "REGION_NAME", "REF_YEAR")) |>
+    select(KEY, REGION_NAME, REF_YEAR, GEO_TYPE, PARENT_RD, POPULATION, TOTAL_JOBS, AVERAGE_EMPLOYMENT_INCOME,
+           TOTAL_INCOME, DIVERSITY_INDEX) |>
     mutate(across(POPULATION:DIVERSITY_INDEX, ~str_remove_all(.x, "^(-|F)$"))) |> ## remove missing data identifiers
     mutate(across(c(REF_YEAR, POPULATION, TOTAL_JOBS), as.integer)) |>
     mutate(across(AVERAGE_EMPLOYMENT_INCOME:DIVERSITY_INDEX, as.double)) |>
@@ -285,7 +289,10 @@ if (load_data) {
   ## load LA (EDA) mapping info (created by R_scripts/merging_geometries.R)
   map_las <- read_sf(here::here("data", FILE_EDA)) |>
     transmute(REGION_NAME = clean_regions(EDA_name))|>
-    mutate(REGION_NAME = ifelse(str_detect(REGION_NAME, "Chilcotin"), "Chilcotin", REGION_NAME)) |>
+    mutate(REGION_NAME = case_when(
+      str_detect(REGION_NAME, "Chilcotin") ~ "Chilcotin",
+      str_detect(REGION_NAME, "Staurt") ~ str_replace_all(REGION_NAME, "Staurt", "Stuart"),
+      TRUE ~REGION_NAME)) |>
     group_by(REGION_NAME) |>
     summarize(geometry = st_union(geometry)) |>
     st_transform(3005) ## transform to meters to join with RDs and simplify (later)
