@@ -17,7 +17,7 @@
 last_updated = format(ymd("2025-06-24"), "%b %d, %Y")
 
 # Do you want to include google analytics tracking code
-google_tracking = F
+google_tracking = T
 
 # Do you want to load and process data from the Excel file (T) or load data from the .Rds file? The latter is faster but obviously requires generating the file and saving it beforehand
 load_data = F
