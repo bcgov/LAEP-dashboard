@@ -98,12 +98,12 @@ ui <- function(req) {
                        strong("Resources:"),
                        br(),
                        a("LAEP main page",
-                         href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles"),
+                         href="https://www2.gov.bc.ca/gov/content?id=746CD642E65E410EAF0EC7CD913FEEE6"),
                        br(),
                        a("LAEP toolkit",
-                         href="https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_2023_toolkit.xlsx"),
+                         href="https://www2.gov.bc.ca/assets/download/3616D0100E9F4EEC8F51FB317960035C"),
                        br(),
-                       a("FAQs", href = "")),
+                       a("FAQs", href = "https://www2.gov.bc.ca/gov/content?id=D6ECFCFDA3654CC7828A3207689FBD1D")),
 
                    div(id = "feedback",
                        style = "margin-top:25px",
@@ -132,7 +132,7 @@ ui <- function(req) {
                          Use the dropdown menus or interactive map to explore economic diversity and income dependencies
                          in your local community. Selecting a region — either from the dropdowns or the map — will automatically
                          update the dashboard with relevant data for that area.<br>
-                         For deeper insights, check out the Local Area Economic Profiles' main page on the <a href='https://www2.gov.bc.ca/gov/content/data/statistics/economy/input-output-model#profiles'>BC Stats website.</a>")),
+                         For deeper insights, check out the Local Area Economic Profiles' main page on the <a href='https://www2.gov.bc.ca/gov/content?id=D6ECFCFDA3654CC7828A3207689FBD1D'>BC Stats website.</a>")),
                 br(),br(),
 
                ## first row (map and summary table)

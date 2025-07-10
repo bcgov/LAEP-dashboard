@@ -33,7 +33,7 @@ tooltips = list(
   income_shares = HTML("Basic income shares measure how a region's basic income is divided across
                         various income sources. Basic income refers to all the external income sources
                         that an area depends on for its economic wellbeing.<br><br>
-                       For a more detailed description, <a href = 'https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_highlights_2023.pdf'>
+                       For a more detailed description, <a href = 'https://www2.gov.bc.ca/assets/download/C499D2E204F845ABBA47686019310E2A'>
                        see the LAEP report.</a>"),
 
   top_employment = HTML("Industries in this table were in the top 5 industries based
@@ -41,7 +41,7 @@ tooltips = list(
                         This is a simple ranking of employment by industry,
                         irrespective of which portions are basic or non-basic.<br><br>
                         For a more detailed description,
-                        <a href = 'https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_highlights_2023.pdf'>
+                        <a href = 'https://www2.gov.bc.ca/assets/download/C499D2E204F845ABBA47686019310E2A'>
                        see the LAEP report.</a>"),
 
   top_lq = HTML("Industries in this table were in the top 5 industries based
@@ -50,7 +50,7 @@ tooltips = list(
                  relative to the provincial average. A value of 2 indicates the industry's
                  concentration of jobs in the region is twice as high compared to the
                  provincial average.<br><br>
-                       For a more detailed description, <a href = 'https://www2.gov.bc.ca/assets/gov/data/statistics/economy/input-output-model/local_area_economic_profiles_highlights_2023.pdf'>
+                       For a more detailed description, <a href = 'https://www2.gov.bc.ca/assets/download/C499D2E204F845ABBA47686019310E2A'>
                        see the LAEP report.</a><br><br>Note: At the provincial level, all location quotients are 1.")
   )
 
