@@ -14,7 +14,7 @@
 
 
 # parameters ----
-last_updated = format(ymd("2025-06-24"), "%b %d, %Y")
+last_updated = format(ymd("2025-07-15"), "%b %d, %Y")
 
 # Do you want to include google analytics tracking code
 google_tracking = T
