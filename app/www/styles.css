@@ -1,146 +1,241 @@
-@font-face{
-font-family: BCSans;
-font-style: normal;
-src: url('BCSans-Regular.woff2') format('woff2'), /* Optimized for very modern browsers */
-url('BCSans-Regular.woff') format('woff'); /* Modern Browsers */
-}
-@font-face{
-font-family: BCSans;
-font-style: italic;
-src: url('BCSans-Italic.woff2') format('woff2'), /* Optimized for very modern browsers */
-url('BCSans-Italic.woff') format('woff'); /* Modern Browsers */
-}
-@font-face{
-font-family: BCSans;
-font-weight: 700;
-src: url('BCSans-Bold.woff2') format('woff2'), /* Optimized for very modern browsers */
-url('BCSans-Bold.woff') format('woff'); /* Modern Browsers */
-}
-@font-face{
-font-family: BCSans;
-font-style: italic;
-font-weight: 700;
-src: url('BCSans-BoldItalic.woff2') format('woff2'), /* Optimized for very modern browsers */
-url('BCSans-BoldItalic.woff') format('woff'); /* Modern Browsers */
-}
-
-@media screen and (min-width: 300px) and (max-width: 499px) {
-  h1 {
-    font-size: 1.0em;
-    visibility: visible;
-  }
-
-  h2 {
-	font-size: 18px;
-	visibility: visible;
-  }
-}
-
-@media screen and (min-width: 500px) and (max-width: 899px) {
-  h1 {
-    font-size: calc(9px + 2.2vw);
-    visibility: visible;
-  }
-
-  h2 {
-	font-size: calc(11px + 1.5vw);
-	visibility: visible;
-  }
-}
-
-@media screen and (min-width: 900px) {
-  h1 {
-    font-size: 2.0em;
-    visibility: visible;
-  }
-
-  h2 {
-	font-size: 1.2em;
-	visibility: visible;
-  }
-}
-
-h2 {
-	font-weight: 700;
-	margin-top: 0.5em;
-	margin-bottom: 0.5em;
-}
-
-h3 {
-	font-size: 18px;
-	visibility: visible;
-	font-weight: 700;
-	margin-top: 0.4em;
-	margin-bottom: 0.4em
-}
-
-h4 {
-	font-size: 14px;
-	visibility: visible;
-	font-weight: 700;
-	margin-top: 0.25em;
-	margin-bottom: 0.25em
-}
-
-html, body, h1, h2, h3, h4, h5, h6 {
-  font-family: BCSans;
-}
-
 /*
-The following three are for the bslib package
+# Copyright 2025 Province of British Columbia
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
 */
 
+
+
+
+/*** TYPOGRAPHY ***/
+/* =====================
+   Body Text
+   ===================== */
+
+/* Regular Body Text */
+body {
+  font: var(--typography-regular-body);
+}
+
+/* Bold Body Text */
+b, strong {
+  font: var(--typography-bold-body);
+}
+
+/* Italic Body Text */
+i, em {
+  font: var(--typography-italic-body);
+}
+
+/* Small Body Text */
+.small-body {
+    font: var(--typography-regular-small-body);
+}
+
+/* =====================
+   Headings (Bold by default)
+   ===================== */
+h1 { font: var(--typography-bold-h1); }
+h2 { font: var(--typography-bold-h2); }
+h3 { font: var(--typography-bold-h3); }
+h4 { font: var(--typography-bold-h4); }
+h5 { font: var(--typography-bold-h5); }
+h6 { font: var(--typography-bold-h6); }
+
+/* =====================
+   Italic tags inside headings
+   ===================== */
+h1 i, h1 em { font: var(--typography-italic-h1); }
+h2 i, h2 em { font: var(--typography-italic-h2); }
+h3 i, h3 em { font: var(--typography-italic-h3); }
+h4 i, h4 em { font: var(--typography-italic-h4); }
+h5 i, h5 em { font: var(--typography-italic-h5); }
+h6 i, h6 em { font: var(--typography-italic-h6); }
+
+/* =====================
+   Alternate Classes for Regular Headings
+   ===================== */
+.regular-h1 { font: var(--typography-regular-h1); }
+.regular-h2 { font: var(--typography-regular-h2); }
+.regular-h3 { font: var(--typography-regular-h3); }
+.regular-h4 { font: var(--typography-regular-h4); }
+.regular-h5 { font: var(--typography-regular-h5); }
+.regular-h6 { font: var(--typography-regular-h6); }
+
+/* =====================
+   Primary font color
+   ===================== */
+body, h1, h2, h3, h4, h5, h6 {
+  color: var(--typography-color-primary);
+}
+
+
+/*** OTHER ELEMENTS ***/
+
+/* Use the design tokens in variables.css to set other defaults */
+
+
+/*** CUSTOM CSS ***/
+
+/* CSS that is specific to your app */
+
+/* =====================
+   Banner formatting
+   ===================== */
+
+/* display a different header based on screen width */
+span.desktop-title { display: flex; }
+span.mobile-title { display: none; }
+
+@media (max-width: 600px) {
+  span.desktop-title { display: none; }
+  span.mobile-title { display: flex; }
+}
+
+/* Required for the link list in bcsheader */
 #header-links-linkList > div > div {
   min-width: 280px;
 }
 
+/* =====================
+   Sidebar formatting
+   ===================== */
 
-.link_list_div {
-  margin-left:auto;
-  margin-right:50px !important;
+/*boxes in sidebar around filters*/
+.sidebar_filters {
+  border: 1px solid #007bc2;
+  border-radius: 3px;
+  padding: 10px;
+  margin:10px 0;
 }
 
-.bslib-card[data-full-screen='true'] {z-index: 100001;}
+/*picker input formatting - reduce padding*/
+button.btn.dropdown-toggle.btn-light {
+  padding:4px !important;
+}
 
+/*picker input formatting - change border to match other sidebar elements*/
+.bootstrap-select .dropdown-toggle {
+   border-radius: 5px;
+   border-color: #337ab7;
+}
 
+/*picker input formatting - change label to bold*/
+.control-label {
+  font-weight: 700;
+}
 
-.recalculating {
+/*picker input formatting - adjust max height for dropdown menu*/
+.dropdown-menu.show {
+  max-height: 400px !important;
+}
+
+/*action button formatting*/
+button#reset_map {
+        font-size: 16px;
+        padding: 10px 15px;
+        border-radius: 5px;
+        background-color: #007bc2; /* Bootstrap primary */
+        color: white;
+        border: none;
+        transition: background-color 0.3s ease;
+        width:100%;
+      }
+
+button#reset_map:hover {
+        background-color: #286090; /* Bootstrap hover */
+      }
+
+/* =====================
+   Fullscreen card formatting
+   ===================== */
+
+/*expand button - make always visible*/
+button.bslib-full-screen-enter.badge.rounded-pill {
+    visibility: visible !important;
     opacity: 1 !important;
 }
 
+/*card formatting - offset top due to custom bcstats header */
+.bslib-card[data-full-screen="true"] {
+  margin-top: 75px;
+}
+
+/*overlay - for X button - offset due to custom bcstats header*/
+#bslib-full-screen-overlay {
+  margin-top:75px;
+}
+
+/* =====================
+   Leaflet attribution styling
+   ===================== */
+
+/*cannot move the leaflet attribution, so remove and create a new one with the styles of the original*/
+.info.legend.leaflet-control:has(.leaflet-control-attribution) {
+  padding: 0 !important;
+  margin:0!important;
+  border-radius: 0 !important;
+  opacity: 0.7;
+}
+.leaflet-control-attribution {
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 0 10px 0 0;
+      background: rgba(255, 255, 255, 0.8);
+      margin: 0;
+}
+
+/* =====================
+   tooltip/popover styling
+   ===================== */
+
+/*bring popovers to the front*/
 .popover {
-  max-width: 500px; /* Maximum width of the popover */
-  word-wrap: break-word; /* Allow long words to break */
-  padding: 15px; /* Padding inside the popover */
-  font-size: 16px; /* Font size */
-  background-color: #f0f0f0; /* Background color */
-  color: #333; /* Text color */
-  border-radius: 10px; /* Rounded corners */
-  z-index: 100002;
+  z-index: 100001;
 }
 
-.popover-header {
-  background-color: #007bff; /* Header background color */
-  color: white; /* Header text color */
-  font-weight: bold; /* Make the header text bold */
+/* sidebar tooltip - style tooltip on income source radio button to look like a popover*/
+.tooltip-inner {
+      background-color: #fff;
+      color: var(--typography-color-primary);
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      padding: 10px;
+      max-width: 250px;
+      font-size: 0.875rem;
+      text-align: left;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
+}
+ /* sidebar tooltip - make the arrow on the tooltip white*/
+.bs-tooltip-end .tooltip-arrow::before, .bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before {
+  border-right-color:white;
+  border-width:0.5rem;
 }
 
-.popover-body {
-  background-color: #f8f9fa; /* Popover body background */
+/* reactable tooltips - style tooltips to look like the other tooltips/popovers*/
+.tippy-content {
+  color: #000; /*to force the correct weight, color is washed out so using black instead of default color*/
+  text-align: left;
+  font-weight:100;
+  font-size: 0.875rem;
+  font-style: normal;
 }
 
-.btn-choose_page {
-  min-width: 200px;
-  display: flex;
-  justify-content: left;
+.tippy-tooltip {
+  background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 0.5rem;
+      padding: 10px;
+      max-width: 250px;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
 }
 
- #choose_page {
-   border: 1px dotted black;
-   border-radius: 10px; /* Rounded corners */
- }
 
-
-svg {
-  max-height: 450px;
-}

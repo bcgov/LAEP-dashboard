@@ -1,7 +1,7 @@
 ---
 output:
   md_document:
-    variant: markdown_github
+    variant: gfm
 ---
 
 ```{r, echo = FALSE}
@@ -12,32 +12,23 @@ knitr::opts_chunk$set(
 )
 ```
 
-<!-- Add a project state badge
-See https://github.com/BCDevExchange/Our-Project-Docs/blob/master/discussion/projectstates.md
-If you have bcgovr installed and you use RStudio, click the 'Insert BCDevex Badge' Addin. -->
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
-# LAEP-dashbaord
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+LAEP-dashboard
+============================
+
+The Local Area Economic Profiles (LAEP) dashboard is a companion product of the LAEP toolkit by BC Stats.
 
 ### Usage
+All the data in the app comes from the LAEP toolkit (link to come).
 
-Describe data being used (links), and how to run. Eg:
-
-There are four core scripts that are required for the analysis, they need to be run in order:
-
-- 01_clean.R
-- 02_analysis.R
-- 03_visualize.R
-- 04_output.R
-
-#### Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-## basic example code
-```
+Details on how to run the app are not available at this time.
 
 ### Project Status
+
+Experimental - Still in the design phase.
 
 ### Getting Help or Reporting an Issue
 
