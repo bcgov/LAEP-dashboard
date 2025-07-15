@@ -50,14 +50,17 @@ industry_colors = c(
   "Public sector" = "#d8b365"                       ## sand
 )
 
+## set is_local ----
+is_local = Sys.getenv("SHINY_PORT") == ""
+if(is_local) source(here::here("app", "R", "functions.R"))
+
 # create app data ----
 ## If load_data = T:
 # Reads in the data from the Excel file and processes it
 # Creates RD to LA lookup table
 # Creates the spatial files from FILE_EDA and bcmaps
-## note: assumes the code is run locally for file paths
-if (load_data) {
-  source(here::here("app", "R", "functions.R"))
+## note: only run code locally
+if (is_local & load_data) {
 
   sheets <- c("Descriptive Stats", "Jobs", "Income Dependencies", "Location Quotients", "Avg Incomes")
   start_row <- c(3, 5, 5, 5, 5)
@@ -355,8 +358,6 @@ if (load_data) {
 }
 
 # load data for app ----
-
-is_local = Sys.getenv("SHINY_PORT") == ""
 
 ## attribute data and lookup table
 data = readRDS(here::here(ifelse(is_local, "app", "."), "data", "data.rds"))
