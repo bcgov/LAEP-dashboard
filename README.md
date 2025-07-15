@@ -1,21 +1,19 @@
-[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
+[![img](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # LAEP-dashboard
 
-The Local Area Economic Profiles (LAEP) dashboard is a companion product
-of the LAEP toolkit by BC Stats.
+The [Local Area Economic Profiles (LAEP) dashboard](https://bcstats.shinyapps.io/LAEP/) is a companion product
+of the LAEP toolkit by BC Stats. More information about the toolkit and the LAEP profiles can be found on the [BC Stats website](https://www2.gov.bc.ca/gov/content?id=746CD642E65E410EAF0EC7CD913FEEE6)
 
 ### Usage
 
-All the data in the app comes from the LAEP toolkit (link to come).
-
-Details on how to run the app are not available at this time.
+To run the app, clone this repo, then download the [LAEP toolkit](https://www2.gov.bc.ca/assets/download/3616D0100E9F4EEC8F51FB317960035C) and update the necessary parameters in global.R.
 
 ### Project Status
 
-Experimental - Still in the design phase.
+Stable. App is in production.
 
 ### Getting Help or Reporting an Issue
 
